@@ -19,24 +19,24 @@ import confetti from 'canvas-confetti';
 export default function RoleDashboard() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { role } = router.query;
+  
+  // Robust role resolution for Next.js static export client hydration
+  const roleFromPath = typeof window !== 'undefined'
+    ? window.location.pathname.split('/').filter(Boolean)[1]
+    : null;
+  const role = router.query.role || roleFromPath;
 
   // Add detailed console logs for debugging the post-auth pipeline
   console.log('[RoleDashboard Render]', {
     routerReady: router.isReady,
-    roleFromQuery: role,
+    roleFromQuery: router.query.role,
+    resolvedRole: role,
     userInContext: user ? { uid: user.uid, role: user.role, status: user.status } : null,
     authLoading,
   });
 
   // Protect route
   useEffect(() => {
-    // Wait until Next.js router query parameters are ready to prevent checking undefined role
-    if (!router.isReady) {
-      console.log('[RoleDashboard Guard] Waiting for router.isReady...');
-      return;
-    }
-
     if (authLoading) {
       console.log('[RoleDashboard Guard] Waiting for authLoading to finish...');
       return;
@@ -45,20 +45,20 @@ export default function RoleDashboard() {
     if (!user) {
       console.log('[RoleDashboard Guard] No user detected. Redirecting to /login...');
       router.push('/login');
-    } else if (user.role !== role) {
+    } else if (role && user.role !== role) {
       console.log(`[RoleDashboard Guard] Role mismatch! User role is "${user.role}" but route role is "${role}". Redirecting to /dashboard/${user.role}...`);
       router.push(`/dashboard/${user.role}`);
     } else {
       console.log('[RoleDashboard Guard] Access authorized. Rendering dashboard.');
     }
-  }, [user, authLoading, role, router.isReady, router]);
+  }, [user, authLoading, role, router]);
 
-  if (authLoading || !user || !router.isReady || user.role !== role) {
+  if (authLoading || !user || !role || user.role !== role) {
     console.log('[RoleDashboard Render] Rendering "Authenticating session portal..." loading screen', {
       authLoading,
       userExists: !!user,
-      routerReady: router.isReady,
-      roleMismatch: user ? user.role !== role : true
+      resolvedRole: role,
+      roleMismatch: user && role ? user.role !== role : true
     });
     return (
       <div className="text-center py-20 font-mono text-sm text-amber-700">

@@ -65,10 +65,14 @@ export default function Login() {
       if (isVerifyingOTP) {
         // Handle OTP verification
         const activeUser = await verifyOTP(email, otpCode);
-        setSuccessMsg('Account activated successfully! Redirecting...');
+        setSuccessMsg('Account activated successfully! Redirecting to campus portal...');
         setTimeout(() => {
-          router.push(`/dashboard/${activeUser.role}`);
-        }, 1200);
+          if (typeof window !== 'undefined') {
+            window.location.href = `/dashboard/${activeUser.role}`;
+          } else {
+            router.push(`/dashboard/${activeUser.role}`);
+          }
+        }, 1000);
       } else if (isLogin) {
         // Handle Login
         const loggedInUser = await login(email, password);
