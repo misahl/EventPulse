@@ -872,7 +872,7 @@ function AdminDashboard({ user }) {
 function OrganizerDashboard({ user }) {
   const { events } = useEvents();
   const [selectedEventId, setSelectedEventId] = useState('');
-  const { registrations, checkInStudent } = useAttendance(selectedEventId);
+  const { registrations, checkInStudent, updateRegistrationStatus } = useAttendance(selectedEventId);
   const [filterDept, setFilterDept] = useState('all');
   const [usnSearchTerm, setUsnSearchTerm] = useState('');
 
@@ -1004,7 +1004,7 @@ function OrganizerDashboard({ user }) {
     ? registrations
     : generateDefaultUSNList(selectedEventId));
 
-  const handleUpdateStudentStatus = (regId, newStatus) => {
+  const handleUpdateStudentStatus = async (regId, newStatus) => {
     const nowIso = new Date().toISOString();
     const updated = activeRegistrations.map(r => {
       if (r.id === regId) {
@@ -1017,6 +1017,12 @@ function OrganizerDashboard({ user }) {
       return r;
     });
     setOverrideRegistrations(updated);
+
+    try {
+      await updateRegistrationStatus(regId, newStatus, nowIso);
+    } catch (err) {
+      console.warn('Could not persist status to database:', err);
+    }
   };
 
   const filteredRegistrations = activeRegistrations.filter(r => {

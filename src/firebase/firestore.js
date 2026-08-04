@@ -497,16 +497,29 @@ export async function fetchStudentRegistrations(studentId) {
   }
 }
 
-export async function fetchEventRegistrations(eventId) {
+export async function updateRegistrationStatus(regId, newStatus, customTime = null) {
+  const checkInTime = (newStatus === 'checkedIn' || newStatus === 'late')
+    ? (customTime || new Date().toISOString())
+    : null;
+
   if (isMock) {
     const regs = getMockRegistrations();
-    return regs.filter(r => r.eventId === eventId);
+    const index = regs.findIndex(r => r.id === regId);
+    if (index !== -1) {
+      regs[index].status = newStatus;
+      regs[index].checkInTime = checkInTime;
+      saveMockRegistrations(regs);
+    }
   } else {
-    const q = query(collection(db, 'registrations'), where('eventId', '==', eventId));
-    const snapshot = await getDocs(q);
-    const regs = [];
-    snapshot.forEach(doc => regs.push(doc.data()));
-    return regs;
+    try {
+      const regRef = doc(db, 'registrations', regId);
+      await updateDoc(regRef, {
+        status: newStatus,
+        checkInTime
+      });
+    } catch (err) {
+      console.error('[updateRegistrationStatus Error]', err);
+    }
   }
 }
 
