@@ -9,7 +9,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import Scanner from '../../components/Scanner';
 import RollingQRPoster from '../../components/RollingQRPoster';
 import { generateToken, verifyRollingEventToken } from '../../lib/qrToken';
-import { createOrganizerAccount, getOrganizersList, updateOrganizerAccount, deleteOrganizerAccount } from '../../firebase/auth';
+import { createOrganizerAccount, getOrganizersList, subscribeToOrganizersList, updateOrganizerAccount, deleteOrganizerAccount } from '../../firebase/auth';
 import {
   ShieldAlert, User, Calendar, MapPin, Users, Award,
   Plus, Check, X, AlertTriangle, Sparkles, QrCode, FileText, Camera, UserPlus, Lock, Mail, Edit3, Trash2
@@ -132,24 +132,24 @@ function AdminDashboard({ user }) {
   const [orgError, setOrgError] = useState('');
   const [orgSuccess, setOrgSuccess] = useState('');
 
-  // Load live organizers on mount
+  // Subscribe to live organizers in real time
   useEffect(() => {
-    async function loadOrganizers() {
-      const liveOrgs = await getOrganizersList();
+    const unsubscribe = subscribeToOrganizersList((liveOrgs) => {
       if (liveOrgs && liveOrgs.length > 0) {
         setOrganizers(prev => {
-          const existingEmails = new Set(prev.map(o => o.email.toLowerCase()));
-          const fresh = liveOrgs.filter(o => !existingEmails.has(o.email.toLowerCase())).map((o, idx) => ({
+          const liveEmails = new Set(liveOrgs.map(o => o.email.toLowerCase()));
+          const existingFiltered = prev.filter(o => !liveEmails.has(o.email.toLowerCase()));
+          const fresh = liveOrgs.map((o, idx) => ({
             id: o.uid || 'live_' + idx,
             name: o.name,
             email: o.email,
             dept: o.department || 'General'
           }));
-          return [...fresh, ...prev];
+          return [...fresh, ...existingFiltered];
         });
       }
-    }
-    loadOrganizers();
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleAddOrganizerSubmit = async (e) => {
@@ -1421,7 +1421,7 @@ function OrganizerDashboard({ user }) {
 // ============================================================================
 function StudentDashboard({ user }) {
   const { events } = useEvents();
-  const { getStudentRegistrations } = useAttendance();
+  const { getStudentRegistrations, subscribeToStudentRegistrations } = useAttendance();
   const [studentRegs, setStudentRegs] = useState([]);
   const [loadingRegs, setLoadingRegs] = useState(true);
 
@@ -1485,23 +1485,16 @@ function StudentDashboard({ user }) {
   };
 
   useEffect(() => {
-    let isMounted = true;
-    const fetchStudentData = async () => {
-      if (!user?.uid) return;
-      setLoadingRegs(true);
-      try {
-        const data = await getStudentRegistrations(user.uid);
-        if (isMounted) setStudentRegs(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        if (isMounted) setLoadingRegs(false);
-      }
-    };
-
-    fetchStudentData();
-    return () => { isMounted = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!user?.uid) {
+      setLoadingRegs(false);
+      return;
+    }
+    setLoadingRegs(true);
+    const unsubscribe = subscribeToStudentRegistrations(user.uid, (data) => {
+      setStudentRegs(data || []);
+      setLoadingRegs(false);
+    });
+    return () => unsubscribe();
   }, [user]);
 
   // Compute AI content-based recommendations

@@ -9,7 +9,7 @@ import {
   sendPasswordResetEmail,
   getAuth
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 
 // Mock database key names in localStorage
 const MOCK_USERS_KEY = 'eventpulse_mock_users';
@@ -469,6 +469,34 @@ export async function getOrganizersList() {
     } catch (err) {
       console.error('[getOrganizersList Error]', err);
       return [];
+    }
+  }
+}
+
+/**
+ * Real-time listener for organizers list.
+ */
+export function subscribeToOrganizersList(callback) {
+  if (isMock) {
+    const users = getMockUsers();
+    callback(users.filter(u => u.role === 'organizer' || u.role === 'admin'));
+    const interval = setInterval(() => {
+      const currentUsers = getMockUsers();
+      callback(currentUsers.filter(u => u.role === 'organizer' || u.role === 'admin'));
+    }, 1000);
+    return () => clearInterval(interval);
+  } else {
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('role', 'in', ['organizer', 'admin']));
+      return onSnapshot(q, (snapshot) => {
+        const organizers = snapshot.docs.map(d => d.data());
+        callback(organizers);
+      });
+    } catch (err) {
+      console.error('[subscribeToOrganizersList Error]', err);
+      callback([]);
+      return () => {};
     }
   }
 }

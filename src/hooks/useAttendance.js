@@ -6,6 +6,7 @@ import {
   fetchStudentRegistrations, 
   fetchEventRegistrations,
   subscribeToEventRegistrations,
+  subscribeToStudentRegistrations,
   executeCheckInTransaction
 } from '../firebase/firestore';
 
@@ -68,6 +69,7 @@ export function useAttendance(eventId = null) {
     loading,
     register,
     getStudentRegistrations,
+    subscribeToStudentRegistrations,
     checkInStudent,
   };
 }

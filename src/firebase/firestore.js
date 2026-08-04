@@ -539,6 +539,31 @@ export function subscribeToEventRegistrations(eventId, callback) {
   }
 }
 
+export function subscribeToStudentRegistrations(studentId, callback) {
+  if (!studentId) {
+    callback([]);
+    return () => {};
+  }
+
+  if (isMock) {
+    const allRegs = getMockRegistrations();
+    let studentRegs = allRegs.filter(r => r.studentId === studentId);
+    callback(studentRegs);
+    const interval = setInterval(() => {
+      const current = getMockRegistrations().filter(r => r.studentId === studentId);
+      callback(current);
+    }, 1000);
+    return () => clearInterval(interval);
+  } else {
+    const q = query(collection(db, 'registrations'), where('studentId', '==', studentId));
+    return onSnapshot(q, (snapshot) => {
+      const regs = [];
+      snapshot.forEach(doc => regs.push(doc.data()));
+      callback(regs);
+    });
+  }
+}
+
 // ==========================================
 // 3. SECURE CHECK-IN / CHECK-OUT TRANSACTION
 // ==========================================
