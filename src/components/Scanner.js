@@ -9,7 +9,7 @@ export default function Scanner({ onScanSuccess, activeEventTitle }) {
   const [scanning, setScanning] = useState(false);
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState('');
-  
+
   const qrCodeInstance = useRef(null);
   const scannerContainerId = 'qr-reader-container';
 
@@ -129,7 +129,7 @@ export default function Scanner({ onScanSuccess, activeEventTitle }) {
       {/* Scanner Target Area */}
       <div className="relative w-full aspect-square bg-slate-900/60 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center">
         <div id={scannerContainerId} className="absolute inset-0 w-full h-full" />
-        
+
         {!scanning && !scanResult && (
           <div className="flex flex-col items-center text-slate-500 p-6 text-center">
             <Camera className="w-12 h-12 mb-3 text-slate-600 animate-pulse-slow" />
@@ -178,11 +178,10 @@ export default function Scanner({ onScanSuccess, activeEventTitle }) {
       <button
         onClick={toggleScan}
         disabled={!!scanResult}
-        className={`w-full mt-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg ${
-          scanning
+        className={`w-full mt-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg ${scanning
             ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/10'
             : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-600/10 disabled:opacity-50'
-        }`}
+          }`}
       >
         <span>{scanning ? 'Stop Camera Scanner' : 'Start Camera Scanner'}</span>
       </button>

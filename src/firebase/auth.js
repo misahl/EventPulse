@@ -1,12 +1,15 @@
 // src/firebase/auth.js
-import { isMock, auth, db } from './config';
+import { isMock, auth, db, firebaseConfig } from './config';
+import { initializeApp } from 'firebase/app';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut,
-  updateProfile
+  updateProfile,
+  sendPasswordResetEmail,
+  getAuth
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where } from 'firebase/firestore';
 
 // Mock database key names in localStorage
 const MOCK_USERS_KEY = 'eventpulse_mock_users';
@@ -244,8 +247,13 @@ export async function loginUser(email, password) {
 
       return userDoc.data();
     } catch (firebaseErr) {
-      if (firebaseErr.code === 'auth/user-not-found' || firebaseErr.code === 'auth/wrong-password' || firebaseErr.code === 'auth/invalid-credential') {
-        throw new Error('Invalid email or password. Please check your credentials or sign up!');
+      console.error('[Firebase Auth Login Error]', firebaseErr.code, firebaseErr.message);
+      if (firebaseErr.code === 'auth/user-not-found') {
+        throw new Error('No account found for this email. Please check your email or click Sign Up!');
+      } else if (firebaseErr.code === 'auth/wrong-password') {
+        throw new Error('Incorrect password for this account. Please re-enter your password or sign up again.');
+      } else if (firebaseErr.code === 'auth/invalid-credential') {
+        throw new Error('Invalid email or password. If you forgot your password, click "Sign Up" to register or re-activate your account!');
       }
       throw new Error(firebaseErr.message || 'Login failed.');
     }
@@ -279,3 +287,189 @@ export async function getCurrentUserProfile(firebaseUid = null) {
     return userDoc.exists() ? userDoc.data() : null;
   }
 }
+
+/**
+ * Send password reset email
+ */
+export async function resetPasswordUser(email) {
+  if (isMock) {
+    return true;
+  } else {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return true;
+    } catch (err) {
+      console.error('[Password Reset Error]', err.code, err.message);
+      if (err.code === 'auth/user-not-found') {
+        throw new Error('No account found for this email address.');
+      } else if (err.code === 'auth/invalid-email') {
+        throw new Error('Please provide a valid email address.');
+      }
+      throw new Error(err.message || 'Failed to send password reset email.');
+    }
+  }
+}
+
+/**
+ * Update an organizer's profile information (including optional password update).
+ */
+export async function updateOrganizerAccount(uid, { name, email, department, newPassword }) {
+  if (!uid && !email) throw new Error('User ID or email is required');
+
+  if (isMock) {
+    const users = getMockUsers();
+    const index = users.findIndex(u => u.uid === uid || u.email === email);
+    if (index !== -1) {
+      users[index] = {
+        ...users[index],
+        name: name || users[index].name,
+        email: email || users[index].email,
+        department: department || users[index].department,
+        password: newPassword ? newPassword : users[index].password
+      };
+      saveMockUsers(users);
+      return users[index];
+    }
+    return { uid, name, email, department };
+  } else {
+    try {
+      const targetUid = uid || email;
+      const userRef = doc(db, 'users', targetUid);
+      const updatedFields = {};
+      if (name) updatedFields.name = name;
+      if (email) updatedFields.email = email;
+      if (department) updatedFields.department = department;
+
+      if (newPassword) {
+        updatedFields.passwordUpdated = new Date().toISOString();
+        try {
+          await sendPasswordResetEmail(auth, email);
+        } catch (resetErr) {
+          console.warn('[Password Reset Email Warning]', resetErr);
+        }
+      }
+
+      await updateDoc(userRef, updatedFields);
+      return { uid: targetUid, ...updatedFields };
+    } catch (err) {
+      console.error('[updateOrganizerAccount Error]', err);
+      throw new Error(err.message || 'Failed to update organizer profile.');
+    }
+  }
+}
+
+/**
+ * Delete an organizer account.
+ */
+export async function deleteOrganizerAccount(uid, email = null) {
+  if (!uid && !email) throw new Error('User ID or Email required to delete organizer.');
+
+  if (isMock) {
+    let users = getMockUsers();
+    users = users.filter(u => u.uid !== uid && u.email !== email);
+    saveMockUsers(users);
+    return true;
+  } else {
+    try {
+      if (uid) {
+        await deleteDoc(doc(db, 'users', uid));
+      }
+      return true;
+    } catch (err) {
+      console.error('[deleteOrganizerAccount Error]', err);
+      throw new Error(err.message || 'Failed to delete organizer account.');
+    }
+  }
+}
+
+
+/**
+ * Admin helper to register an organizer account.
+ */
+export async function createOrganizerAccount({ name, email, password, department }) {
+  if (!email || !password || !name) {
+    throw new Error('Name, Email, and Password are required to create an organizer account.');
+  }
+
+  if (isMock) {
+    const users = getMockUsers();
+    if (users.some(u => u.email === email)) {
+      throw new Error('An account with this email address already exists.');
+    }
+
+    const newOrganizer = {
+      uid: 'org_' + Date.now(),
+      name,
+      email,
+      password,
+      role: 'organizer',
+      department: department || 'General',
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+
+    users.push(newOrganizer);
+    saveMockUsers(users);
+    return newOrganizer;
+  } else {
+    // Real Firebase: Create user using secondary app instance so primary admin auth session is preserved
+    try {
+      const secondaryAppName = 'SecondaryAuth_' + Date.now();
+      const secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+      const secondaryAuth = getAuth(secondaryApp);
+
+      const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+      const firebaseUser = userCredential.user;
+
+      await updateProfile(firebaseUser, { displayName: name });
+
+      const userProfile = {
+        uid: firebaseUser.uid,
+        email,
+        name,
+        role: 'organizer',
+        department: department || 'General',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      };
+
+      // Write user document to Firestore using main db instance
+      await setDoc(doc(db, 'users', firebaseUser.uid), userProfile);
+
+      // Clean up secondary auth session
+      await signOut(secondaryAuth);
+
+      return userProfile;
+    } catch (firebaseErr) {
+      console.error('[Create Organizer Error]', firebaseErr.code, firebaseErr.message);
+      if (firebaseErr.code === 'auth/email-already-in-use') {
+        throw new Error('An organizer account with this email address already exists.');
+      } else if (firebaseErr.code === 'auth/weak-password') {
+        throw new Error('Password must be at least 6 characters long.');
+      }
+      throw new Error(firebaseErr.message || 'Failed to create organizer account.');
+    }
+  }
+}
+
+/**
+ * Fetch all registered organizers & faculty.
+ */
+export async function getOrganizersList() {
+  if (isMock) {
+    const users = getMockUsers();
+    return users.filter(u => u.role === 'organizer' || u.role === 'admin');
+  } else {
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('role', 'in', ['organizer', 'admin']));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(d => d.data());
+    } catch (err) {
+      console.error('[getOrganizersList Error]', err);
+      return [];
+    }
+  }
+}
+
+

@@ -8,7 +8,8 @@ import {
   verifyOTPCode, 
   logoutUser, 
   getCurrentUserProfile,
-  getSessionUser
+  getSessionUser,
+  resetPasswordUser
 } from '../firebase/auth';
 
 const AuthContext = createContext({
@@ -17,6 +18,7 @@ const AuthContext = createContext({
   login: async () => {},
   signUp: async () => {},
   verifyOTP: async () => {},
+  resetPassword: async () => {},
   logout: async () => {},
 });
 
@@ -133,6 +135,11 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const resetPassword = async (email) => {
+    console.log('[AuthContext resetPassword] Sending reset email to:', email);
+    return await resetPasswordUser(email);
+  };
+
   const logout = async () => {
     console.log('[AuthContext logout] Entering logout pipeline...');
     setLoading(true);
@@ -148,7 +155,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signUp, verifyOTP, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signUp, verifyOTP, resetPassword, logout }}>
       {children}
     </AuthContext.Provider>
   );

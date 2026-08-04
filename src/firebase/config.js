@@ -48,4 +48,4 @@ if (!isMock) {
   }
 }
 
-export { app, db, auth, isMock };
+export { app, db, auth, isMock, firebaseConfig };

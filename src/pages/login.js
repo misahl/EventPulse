@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { ShieldCheck, Mail, Lock, User, Hash, BookOpen, Layers, Award, Tag } from 'lucide-react';
 
 export default function Login() {
-  const { user, login, signUp, verifyOTP } = useAuth();
+  const { user, login, signUp, verifyOTP, resetPassword } = useAuth();
   const router = useRouter();
 
   const [isLogin, setIsLogin] = useState(true);
@@ -24,6 +24,21 @@ export default function Login() {
   const [interestsInput, setInterestsInput] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [demoOTP, setDemoOTP] = useState('');
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Please enter your email address above to reset your password.');
+      return;
+    }
+    setError('');
+    setSuccessMsg('');
+    try {
+      await resetPassword(email);
+      setSuccessMsg(`Password reset email sent to ${email}! Check your inbox to reset your password.`);
+    } catch (err) {
+      setError(err.message || 'Failed to send password reset email.');
+    }
+  };
 
   // Redirect if already logged in and active
   useEffect(() => {
@@ -279,44 +294,24 @@ export default function Login() {
                     className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500"
                   />
                 </div>
+                {isLogin && (
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-xs font-bold text-amber-600 hover:text-amber-700 transition-colors cursor-pointer"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Role Selection (Sign Up only) */}
+              {/* Public Sign Up Notice */}
               {!isLogin && (
-                <div className="grid grid-cols-3 gap-2 py-1">
-                  <button
-                    type="button"
-                    onClick={() => setRole('student')}
-                    className={`py-2 px-3 text-xs font-bold rounded-2xl border transition-all ${
-                      role === 'student'
-                        ? 'bg-amber-100 border-amber-300 text-amber-900 shadow-xs'
-                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Student
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole('organizer')}
-                    className={`py-2 px-3 text-xs font-bold rounded-2xl border transition-all ${
-                      role === 'organizer'
-                        ? 'bg-emerald-100 border-emerald-300 text-emerald-900 shadow-xs'
-                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Organizer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole('admin')}
-                    className={`py-2 px-3 text-xs font-bold rounded-2xl border transition-all ${
-                      role === 'admin'
-                        ? 'bg-rose-100 border-rose-300 text-rose-900 shadow-xs'
-                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Faculty Admin
-                  </button>
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] font-semibold text-amber-900 flex items-center space-x-2">
+                  <span className="text-sm">🎓</span>
+                  <span>Public Registration is for <b>Student Accounts</b>. Organizer and Faculty accounts are created by Campus Admin.</span>
                 </div>
               )}
 

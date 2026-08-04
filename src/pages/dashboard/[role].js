@@ -9,9 +9,10 @@ import { QRCodeSVG } from 'qrcode.react';
 import Scanner from '../../components/Scanner';
 import RollingQRPoster from '../../components/RollingQRPoster';
 import { verifyRollingEventToken } from '../../lib/qrToken';
+import { createOrganizerAccount, getOrganizersList, updateOrganizerAccount, deleteOrganizerAccount } from '../../firebase/auth';
 import {
   ShieldAlert, User, Calendar, MapPin, Users, Award,
-  Plus, Check, X, AlertTriangle, Sparkles, QrCode, FileText, Camera
+  Plus, Check, X, AlertTriangle, Sparkles, QrCode, FileText, Camera, UserPlus, Lock, Mail, Edit3, Trash2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -113,6 +114,129 @@ function AdminDashboard({ user }) {
   const [tagsInput, setTagsInput] = useState('');
   const [equipmentInput, setEquipmentInput] = useState('');
   const [assignFacultyName, setAssignFacultyName] = useState('');
+
+  // Registered Organizers State
+  const [organizers, setOrganizers] = useState([
+    { id: 1, name: 'Dr. S.S. Inamdar', email: 'inamdar@sahyadri.edu.in', dept: 'CSE' },
+    { id: 2, name: 'Dr. Ajith B.S.', email: 'ajith.msme@sahyadri.edu.in', dept: 'ME' },
+    { id: 3, name: 'Pratheek G. Shetty', email: 'pratheek.sosc@sahyadri.edu.in', dept: 'CSE (AIML)' },
+    { id: 4, name: 'Prof. Ramesh KG', email: 'ramesh.mba@sahyadri.edu.in', dept: 'AIML' },
+    { id: 5, name: 'Dr. Vishal Samartha', email: 'vishal.samartha@sahyadri.edu.in', dept: 'ISE' }
+  ]);
+  const [showAddOrgModal, setShowAddOrgModal] = useState(false);
+  const [newOrgName, setNewOrgName] = useState('');
+  const [newOrgEmail, setNewOrgEmail] = useState('');
+  const [newOrgPassword, setNewOrgPassword] = useState('');
+  const [newOrgDept, setNewOrgDept] = useState('CSE');
+  const [orgSubmitting, setOrgSubmitting] = useState(false);
+  const [orgError, setOrgError] = useState('');
+  const [orgSuccess, setOrgSuccess] = useState('');
+
+  // Load live organizers on mount
+  useEffect(() => {
+    async function loadOrganizers() {
+      const liveOrgs = await getOrganizersList();
+      if (liveOrgs && liveOrgs.length > 0) {
+        setOrganizers(prev => {
+          const existingEmails = new Set(prev.map(o => o.email.toLowerCase()));
+          const fresh = liveOrgs.filter(o => !existingEmails.has(o.email.toLowerCase())).map((o, idx) => ({
+            id: o.uid || 'live_' + idx,
+            name: o.name,
+            email: o.email,
+            dept: o.department || 'General'
+          }));
+          return [...fresh, ...prev];
+        });
+      }
+    }
+    loadOrganizers();
+  }, []);
+
+  const handleAddOrganizerSubmit = async (e) => {
+    e.preventDefault();
+    setOrgError('');
+    setOrgSuccess('');
+    setOrgSubmitting(true);
+
+    try {
+      const created = await createOrganizerAccount({
+        name: newOrgName,
+        email: newOrgEmail,
+        password: newOrgPassword,
+        department: newOrgDept
+      });
+
+      setOrganizers(prev => [
+        {
+          id: created.uid || Date.now(),
+          name: created.name,
+          email: created.email,
+          dept: created.department || newOrgDept
+        },
+        ...prev
+      ]);
+
+      setOrgSuccess(`Organizer account created for ${created.name}! They can now log in with ${created.email}.`);
+      setNewOrgName('');
+      setNewOrgEmail('');
+      setNewOrgPassword('');
+      setTimeout(() => setShowAddOrgModal(false), 2200);
+    } catch (err) {
+      setOrgError(err.message || 'Failed to create organizer account.');
+    } finally {
+      setOrgSubmitting(false);
+    }
+  };
+
+  // Edit & Delete Organizer state & handlers
+  const [editingOrgId, setEditingOrgId] = useState(null);
+  const [editOrgName, setEditOrgName] = useState('');
+  const [editOrgEmail, setEditOrgEmail] = useState('');
+  const [editOrgDept, setEditOrgDept] = useState('CSE');
+  const [editOrgPassword, setEditOrgPassword] = useState('');
+
+  const startEditOrganizer = (org) => {
+    setEditingOrgId(org.id);
+    setEditOrgName(org.name);
+    setEditOrgEmail(org.email);
+    setEditOrgDept(org.dept || 'CSE');
+    setEditOrgPassword('');
+  };
+
+  const handleSaveOrganizerEdit = async (e, orgId) => {
+    e.preventDefault();
+    try {
+      await updateOrganizerAccount(orgId, {
+        name: editOrgName,
+        email: editOrgEmail,
+        department: editOrgDept,
+        newPassword: editOrgPassword
+      });
+
+      setOrganizers(prev => prev.map(o => o.id === orgId ? {
+        ...o,
+        name: editOrgName,
+        email: editOrgEmail,
+        dept: editOrgDept
+      } : o));
+
+      setEditingOrgId(null);
+      setEditOrgPassword('');
+    } catch (err) {
+      alert(err.message || 'Failed to update organizer');
+    }
+  };
+
+  const handleDeleteOrganizer = async (orgId, orgEmail) => {
+    if (!window.confirm(`Are you sure you want to remove organizer account "${orgEmail}"?`)) return;
+
+    try {
+      await deleteOrganizerAccount(orgId, orgEmail);
+      setOrganizers(prev => prev.filter(o => o.id !== orgId && o.email !== orgEmail));
+    } catch (err) {
+      alert(err.message || 'Failed to delete organizer');
+    }
+  };
 
   // Real-time Conflict warning state
   const [conflictWarning, setConflictWarning] = useState(null);
@@ -512,26 +636,226 @@ function AdminDashboard({ user }) {
 
         {/* Registered Organizers Registry */}
         <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-md space-y-4 mt-6">
-          <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
-            <Users className="w-4 h-4 text-amber-600" />
-            <span>Registered Organizers & Faculty (5)</span>
-          </h3>
-          <div className="space-y-2">
-            {[
-              { id: 1, name: 'Dr. S.S. Inamdar', email: 'inamdar@sahyadri.edu.in', dept: 'CSE' },
-              { id: 2, name: 'Dr. Ajith B.S.', email: 'ajith.msme@sahyadri.edu.in', dept: 'ME' },
-              { id: 3, name: 'Pratheek G. Shetty', email: 'pratheek.sosc@sahyadri.edu.in', dept: 'CSE (AIML)' },
-              { id: 4, name: 'Prof. Ramesh KG', email: 'ramesh.mba@sahyadri.edu.in', dept: 'AIML' },
-              { id: 5, name: 'Dr. Vishal Samartha', email: 'vishal.samartha@sahyadri.edu.in', dept: 'ISE' }
-            ].map(org => (
-              <div key={org.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-extrabold text-slate-900 block">{org.name}</span>
-                  <span className="text-[10px] text-slate-500 block font-mono">{org.email} &bull; Dept: {org.dept}</span>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
+              <Users className="w-4 h-4 text-amber-600" />
+              <span>Registered Organizers & Faculty ({organizers.length})</span>
+            </h3>
+            <button
+              onClick={() => {
+                setShowAddOrgModal(!showAddOrgModal);
+                setOrgError('');
+                setOrgSuccess('');
+              }}
+              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-[11px] font-bold rounded-xl text-white flex items-center space-x-1 shadow-xs transition-all cursor-pointer"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>+ Add Organizer</span>
+            </button>
+          </div>
+
+          {/* Add Organizer Form Modal / Expandable Panel */}
+          {showAddOrgModal && (
+            <form onSubmit={handleAddOrganizerSubmit} className="p-4 bg-amber-50/60 border border-amber-200 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between border-b border-amber-200/60 pb-2">
+                <h4 className="text-xs font-extrabold text-amber-900 flex items-center space-x-1.5">
+                  <UserPlus className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Provision New Organizer Credentials</span>
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setShowAddOrgModal(false)}
+                  className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {orgError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-[11px] font-bold text-rose-800">
+                  {orgError}
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-100 border border-emerald-300 text-emerald-900 uppercase">
-                  Faculty Organizer
-                </span>
+              )}
+
+              {orgSuccess && (
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] font-bold text-emerald-800">
+                  {orgSuccess}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">Organizer Full Name</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400">
+                    <User className="w-3.5 h-3.5" />
+                  </span>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Dr. Rajesh Kumar"
+                    value={newOrgName}
+                    onChange={(e) => setNewOrgName(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">Email Address</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400">
+                      <Mail className="w-3.5 h-3.5" />
+                    </span>
+                    <input
+                      type="email"
+                      required
+                      placeholder="organizer@sahyadri.edu.in"
+                      value={newOrgEmail}
+                      onChange={(e) => setNewOrgEmail(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">Initial Password</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400">
+                      <Lock className="w-3.5 h-3.5" />
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Minimum 6 characters"
+                      value={newOrgPassword}
+                      onChange={(e) => setNewOrgPassword(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">Department</label>
+                <select
+                  value={newOrgDept}
+                  onChange={(e) => setNewOrgDept(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+                >
+                  <option value="CSE">Computer Science (CSE)</option>
+                  <option value="AIML">CSE - AI & Machine Learning (AIML)</option>
+                  <option value="CSE (AIML)">CSE (AIML)</option>
+                  <option value="ISE">Information Science (ISE)</option>
+                  <option value="ECE">Electronics & Communication (ECE)</option>
+                  <option value="ME">Mechanical Engineering (ME)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAddOrgModal(false)}
+                  className="px-3 py-1 text-xs font-semibold text-slate-500 hover:text-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={orgSubmitting}
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {orgSubmitting ? 'Creating Account...' : 'Create Organizer Account'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+            {organizers.map(org => (
+              <div key={org.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                {editingOrgId === org.id ? (
+                  <form onSubmit={(e) => handleSaveOrganizerEdit(e, org.id)} className="space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        required
+                        value={editOrgName}
+                        onChange={(e) => setEditOrgName(e.target.value)}
+                        placeholder="Organizer Name"
+                        className="px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none"
+                      />
+                      <input
+                        type="email"
+                        required
+                        value={editOrgEmail}
+                        onChange={(e) => setEditOrgEmail(e.target.value)}
+                        placeholder="Email Address"
+                        className="px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-none"
+                      />
+                      <input
+                        type="text"
+                        value={editOrgPassword}
+                        onChange={(e) => setEditOrgPassword(e.target.value)}
+                        placeholder="New Password (leave blank to keep current)"
+                        className="px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-mono font-medium text-slate-900 focus:outline-none"
+                      />
+                      <select
+                        value={editOrgDept}
+                        onChange={(e) => setEditOrgDept(e.target.value)}
+                        className="px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-none"
+                      >
+                        <option value="CSE">CSE</option>
+                        <option value="AIML">AIML</option>
+                        <option value="CSE (AIML)">CSE (AIML)</option>
+                        <option value="ISE">ISE</option>
+                        <option value="ECE">ECE</option>
+                        <option value="ME">ME</option>
+                      </select>
+                    </div>
+                    <div className="flex justify-end space-x-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditingOrgId(null)}
+                        className="px-2.5 py-1 text-[11px] font-semibold text-slate-500 hover:text-slate-700"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-[11px] font-bold text-white rounded-lg shadow-xs"
+                      >
+                        Save Changes
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-extrabold text-slate-900 block">{org.name}</span>
+                      <span className="text-[10px] text-slate-500 block font-mono">{org.email} &bull; Dept: {org.dept}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-100 border border-emerald-300 text-emerald-900 uppercase">
+                        Faculty Organizer
+                      </span>
+                      <button
+                        onClick={() => startEditOrganizer(org)}
+                        className="p-1 text-slate-400 hover:text-amber-600 transition-colors"
+                        title="Edit organizer information"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteOrganizer(org.id, org.email)}
+                        className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                        title="Delete organizer account"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
