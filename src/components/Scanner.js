@@ -37,18 +37,39 @@ export default function Scanner({ onScanSuccess, activeEventTitle }) {
     setScanResult(null);
 
     try {
-      // 1. Fetch available cameras dynamically on demand
-      let camId = selectedCameraId;
-      if (!camId) {
+      // 1. Determine camera config: default to rear/environment camera
+      let cameraConfig = selectedCameraId;
+
+      try {
         const devices = await Html5Qrcode.getCameras();
         if (devices && devices.length > 0) {
           setCameras(devices);
-          camId = devices[0].id;
-          setSelectedCameraId(camId);
-        } else {
-          setScanError('No camera devices found.');
-          return;
+
+          if (!cameraConfig) {
+            // Find explicit back/rear camera in device list
+            const rearCamera = devices.find(d => {
+              const label = (d.label || '').toLowerCase();
+              return label.includes('back') || label.includes('rear') || label.includes('environment') || label.includes('facing back') || label.includes('0, facing back');
+            });
+
+            if (rearCamera) {
+              cameraConfig = rearCamera.id;
+              setSelectedCameraId(rearCamera.id);
+            } else if (devices.length > 1) {
+              // On mobile devices, rear camera is typically the last device in the list
+              const lastDevice = devices[devices.length - 1];
+              cameraConfig = lastDevice.id;
+              setSelectedCameraId(lastDevice.id);
+            }
+          }
         }
+      } catch (enumErr) {
+        console.warn('Could not enumerate camera devices, using default facingMode environment:', enumErr);
+      }
+
+      // Fallback to native environment facingMode for rear camera on mobile Safari/Chrome
+      if (!cameraConfig) {
+        cameraConfig = { facingMode: "environment" };
       }
 
       // 2. Start scanner instance
@@ -56,7 +77,7 @@ export default function Scanner({ onScanSuccess, activeEventTitle }) {
       qrCodeInstance.current = html5QrCode;
 
       await html5QrCode.start(
-        camId,
+        cameraConfig,
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
@@ -74,7 +95,7 @@ export default function Scanner({ onScanSuccess, activeEventTitle }) {
       setScanning(true);
     } catch (err) {
       console.error('Error starting scanner:', err);
-      setScanError('Could not start scanner. Verify permissions or camera status.');
+      setScanError('Could not start scanner. Verify camera permissions or ensure rear camera is available.');
     }
   };
 
