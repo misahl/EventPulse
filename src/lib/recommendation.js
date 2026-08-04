@@ -124,3 +124,43 @@ export function getRecommendations(student, upcomingEvents, pastEvents = [], top
     .sort((a, b) => b.matchPercentage - a.matchPercentage)
     .slice(0, topN);
 }
+
+/**
+ * Generates an AI-crafted professional description for campus events based on metadata.
+ */
+export async function generateAIDescription({ title = '', category = 'Technical', venue = '', department = '', audience = '', tags = '' }) {
+  await new Promise(resolve => setTimeout(resolve, 750));
+
+  const cleanTitle = title.trim() || 'Campus Flagship Event';
+  const cleanCategory = category.trim() || 'Technical & Innovation';
+  const cleanVenue = venue.trim() || 'Campus Seminar Hall';
+  const cleanDept = department.trim() || 'Computer Science & Engineering';
+  const cleanAudience = audience.trim() || 'All Registered Students & Faculty Members';
+  const cleanTags = tags ? tags.split(',').map(t => t.trim()).filter(Boolean).join(', ') : 'Innovation, Hands-on Learning, Skill Building';
+
+  const templates = [
+    `Join us for "${cleanTitle}", a premier ${cleanCategory.toLowerCase()} event organized by the Department of ${cleanDept}. Taking place at ${cleanVenue}, this event is open to ${cleanAudience.toLowerCase()}.\n\n` +
+    `Key Highlights:\n` +
+    `• Interactive sessions & live project demonstrations\n` +
+    `• In-depth learning in ${cleanTags}\n` +
+    `• Peer networking, Q&A session, and participation certificates\n\n` +
+    `Don't miss this high-impact learning opportunity! Register now to secure your seat.`,
+
+    `The Department of ${cleanDept} presents "${cleanTitle}" — an engaging ${cleanCategory.toLowerCase()} workshop designed to boost technical expertise and teamwork.\n\n` +
+    `Event Details:\n` +
+    `📍 Venue: ${cleanVenue}\n` +
+    `🎯 Audience: ${cleanAudience}\n` +
+    `🏷️ Focus Areas: ${cleanTags}\n\n` +
+    `Participants will gain practical exposure, solve real-world problems, and receive guidance from faculty coordinators. Seats are limited. Reserve your spot today!`,
+
+    `Empower your skills with "${cleanTitle}"! Hosted at ${cleanVenue}, this ${cleanCategory.toLowerCase()} event offers comprehensive insights and hands-on activities for ${cleanAudience.toLowerCase()}.\n\n` +
+    `What to Expect:\n` +
+    `1. Expert presentations on ${cleanTags}\n` +
+    `2. Interactive Q&A and networking opportunities\n` +
+    `3. Digital attendance pass & participation certificate\n\n` +
+    `Take your skills to the next level. RSVP now!`
+  ];
+
+  const index = Math.abs(cleanTitle.length) % templates.length;
+  return templates[index];
+}

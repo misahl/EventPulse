@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../context/AuthContext';
 import { useEvents } from '../../hooks/useEvents';
 import { useAttendance } from '../../hooks/useAttendance';
-import { getRecommendations } from '../../lib/recommendation';
+import { getRecommendations, generateAIDescription } from '../../lib/recommendation';
 import { QRCodeSVG } from 'qrcode.react';
 import Scanner from '../../components/Scanner';
 import RollingQRPoster from '../../components/RollingQRPoster';
@@ -15,6 +15,21 @@ import {
   Plus, Check, X, AlertTriangle, Sparkles, QrCode, FileText, Camera, UserPlus, Lock, Mail, Edit3, Trash2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+
+const DEFAULT_FACULTY_MEMBERS = [
+  'Dr. Jane Smith',
+  'Dr. John Doe',
+  'Dr. S.S. Inamdar & Student Committee',
+  'Dr. Ajith B.S. (Convener MSME)',
+  'Dr. Vishal Samartha & Ms. Monisha Shetty',
+  'Mr. Awin Eric Cutinha & Mr. Sagar Attavar',
+  'Prof. Ramesh KG & Prof. Monisha Shetty',
+  'Pratheek G. Shetty & Ashika (SOSC Leads)',
+  'Dept. of Aeronautical & Mechanical Engineering',
+  'Office of Academic Affairs',
+  'Dept. of Physical Education',
+  'Campus Alumni Association'
+];
 
 export default function RoleDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -114,6 +129,26 @@ function AdminDashboard({ user }) {
   const [tagsInput, setTagsInput] = useState('');
   const [equipmentInput, setEquipmentInput] = useState('');
   const [assignFacultyName, setAssignFacultyName] = useState('');
+  const [generatingAiDesc, setGeneratingAiDesc] = useState(false);
+
+  const handleGenerateAdminAIDesc = async () => {
+    setGeneratingAiDesc(true);
+    try {
+      const generatedText = await generateAIDescription({
+        title,
+        category,
+        venue,
+        department,
+        audience: `Students of ${department}`,
+        tags: equipmentInput || tagsInput
+      });
+      setDescription(generatedText);
+    } catch (err) {
+      console.error('AI Description generation error:', err);
+    } finally {
+      setGeneratingAiDesc(false);
+    }
+  };
 
   // Registered Organizers State
   const [organizers, setOrganizers] = useState([
@@ -151,6 +186,11 @@ function AdminDashboard({ user }) {
     });
     return () => unsubscribe();
   }, []);
+
+  const allFacultyOptions = Array.from(new Set([
+    ...organizers.map(o => o.name).filter(Boolean),
+    ...DEFAULT_FACULTY_MEMBERS
+  ]));
 
   const handleAddOrganizerSubmit = async (e) => {
     e.preventDefault();
@@ -345,12 +385,23 @@ function AdminDashboard({ user }) {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs text-slate-400">Description</label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-slate-400 font-medium">Description</label>
+                <button
+                  type="button"
+                  onClick={handleGenerateAdminAIDesc}
+                  disabled={generatingAiDesc}
+                  className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-lg text-[11px] font-bold flex items-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${generatingAiDesc ? 'animate-spin' : ''}`} />
+                  <span>{generatingAiDesc ? 'Generating AI Description...' : '✨ Generate AI Description'}</span>
+                </button>
+              </div>
               <textarea
                 placeholder="Brief description of the event details..." value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3 py-2 h-20 bg-slate-950 border border-white/10 rounded-xl text-slate-200 text-xs focus:outline-none resize-none"
+                className="w-full px-3 py-2 h-24 bg-slate-950 border border-white/10 rounded-xl text-slate-200 text-xs focus:outline-none resize-none"
               />
             </div>
 
@@ -422,11 +473,16 @@ function AdminDashboard({ user }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-xs text-slate-400">Faculty-in-Charge</label>
-                <input
-                  type="text" placeholder="Dr. Jane Smith" value={facultyInCharge}
+                <select
+                  value={facultyInCharge}
                   onChange={(e) => setFacultyInCharge(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-slate-200 text-xs focus:outline-none"
-                />
+                  className="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-slate-200 text-xs focus:outline-none cursor-pointer"
+                >
+                  <option value="">Select Faculty-in-Charge...</option>
+                  {allFacultyOptions.map((fName, idx) => (
+                    <option key={idx} value={fName}>{fName}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1">
@@ -569,13 +625,16 @@ function AdminDashboard({ user }) {
                   <div className="flex items-center justify-between pt-2">
                     {/* Faculty In charge assignment input */}
                     <div className="flex items-center space-x-2">
-                      <input
-                        type="text"
-                        placeholder="Assign Faculty-in-charge"
-                        defaultValue={event.facultyInCharge}
+                      <select
+                        defaultValue={event.facultyInCharge || ''}
                         onChange={(e) => setAssignFacultyName(e.target.value)}
-                        className="px-3 py-1.5 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-300 focus:outline-none"
-                      />
+                        className="px-3 py-1.5 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-300 focus:outline-none cursor-pointer"
+                      >
+                        <option value="">Assign Faculty-in-charge...</option>
+                        {allFacultyOptions.map((fName, idx) => (
+                          <option key={idx} value={fName}>{fName}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="flex space-x-2">
@@ -1066,6 +1125,27 @@ function OrganizerDashboard({ user }) {
   const [orgCapacity, setOrgCapacity] = useState('100');
   const [orgCategory, setOrgCategory] = useState('Technical');
   const [orgDept, setOrgDept] = useState(user.department || 'CSE');
+  const [orgFaculty, setOrgFaculty] = useState('');
+  const [generatingOrgAiDesc, setGeneratingOrgAiDesc] = useState(false);
+
+  const handleGenerateOrgAIDesc = async () => {
+    setGeneratingOrgAiDesc(true);
+    try {
+      const generatedText = await generateAIDescription({
+        title: orgTitle,
+        category: orgCategory,
+        venue: orgVenue,
+        department: orgDept,
+        audience: `Students of ${orgDept}`,
+        tags: 'Campus Flagship Event'
+      });
+      setOrgDesc(generatedText);
+    } catch (err) {
+      console.error('AI Description generation error:', err);
+    } finally {
+      setGeneratingOrgAiDesc(false);
+    }
+  };
 
   const handleOrgProposeEvent = async (e) => {
     e.preventDefault();
@@ -1073,7 +1153,7 @@ function OrganizerDashboard({ user }) {
       title: orgTitle,
       description: orgDesc,
       venue: orgVenue,
-      facultyInCharge: user.name,
+      facultyInCharge: orgFaculty || user.name,
       startTime: orgStartTime,
       endTime: orgEndTime,
       capacity: orgCapacity,
@@ -1131,12 +1211,23 @@ function OrganizerDashboard({ user }) {
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs text-slate-700 font-bold">Description</label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-slate-700 font-bold">Description</label>
+                <button
+                  type="button"
+                  onClick={handleGenerateOrgAIDesc}
+                  disabled={generatingOrgAiDesc}
+                  className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded-lg text-[11px] font-extrabold flex items-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${generatingOrgAiDesc ? 'animate-spin' : ''}`} />
+                  <span>{generatingOrgAiDesc ? 'Generating AI Description...' : '✨ Generate AI Description'}</span>
+                </button>
+              </div>
               <textarea
-                rows={2} required placeholder="Brief description of the event..." value={orgDesc}
+                rows={3} required placeholder="Brief description of the event..." value={orgDesc}
                 onChange={(e) => setOrgDesc(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-amber-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-amber-500 resize-none"
               />
             </div>
 
@@ -1170,6 +1261,19 @@ function OrganizerDashboard({ user }) {
                   <option value="ME">ME</option>
                 </select>
               </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs text-slate-700 font-bold">Faculty-in-Charge</label>
+              <select
+                value={orgFaculty} onChange={(e) => setOrgFaculty(e.target.value)}
+                className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:outline-none cursor-pointer"
+              >
+                <option value="">Select Faculty-in-Charge...</option>
+                {DEFAULT_FACULTY_MEMBERS.map((fName, idx) => (
+                  <option key={idx} value={fName}>{fName}</option>
+                ))}
+              </select>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
