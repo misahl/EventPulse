@@ -1065,6 +1065,8 @@ function OrganizerDashboard({ user }) {
 
   const handleUpdateStudentStatus = async (regId, newStatus) => {
     const nowIso = new Date().toISOString();
+    const targetReg = activeRegistrations.find(r => r.id === regId);
+
     const updated = activeRegistrations.map(r => {
       if (r.id === regId) {
         return {
@@ -1078,7 +1080,7 @@ function OrganizerDashboard({ user }) {
     setOverrideRegistrations(updated);
 
     try {
-      await updateRegistrationStatus(regId, newStatus, nowIso);
+      await updateRegistrationStatus(regId, newStatus, nowIso, targetReg);
     } catch (err) {
       console.warn('Could not persist status to database:', err);
     }

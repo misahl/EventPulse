@@ -497,26 +497,41 @@ export async function fetchStudentRegistrations(studentId) {
   }
 }
 
-export async function updateRegistrationStatus(regId, newStatus, customTime = null) {
+export async function updateRegistrationStatus(regId, newStatus, customTime = null, fullRegData = null) {
   const checkInTime = (newStatus === 'checkedIn' || newStatus === 'late')
     ? (customTime || new Date().toISOString())
     : null;
 
   if (isMock) {
     const regs = getMockRegistrations();
-    const index = regs.findIndex(r => r.id === regId);
+    let index = regs.findIndex(r => 
+      r.id === regId || 
+      (fullRegData && r.studentUSN && r.studentUSN === fullRegData.studentUSN && (r.eventId === fullRegData.eventId || fullRegData.eventId === 'all'))
+    );
+
     if (index !== -1) {
       regs[index].status = newStatus;
       regs[index].checkInTime = checkInTime;
-      saveMockRegistrations(regs);
-    }
-  } else {
-    try {
-      const regRef = doc(db, 'registrations', regId);
-      await updateDoc(regRef, {
+    } else if (fullRegData) {
+      regs.push({
+        ...fullRegData,
+        id: regId,
         status: newStatus,
         checkInTime
       });
+    }
+    saveMockRegistrations(regs);
+  } else {
+    try {
+      const regRef = doc(db, 'registrations', regId);
+      const payload = {
+        ...(fullRegData || {}),
+        id: regId,
+        status: newStatus,
+        checkInTime,
+        updatedAt: new Date().toISOString()
+      };
+      await setDoc(regRef, payload, { merge: true });
     } catch (err) {
       console.error('[updateRegistrationStatus Error]', err);
     }
