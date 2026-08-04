@@ -1471,17 +1471,21 @@ function StudentDashboard({ user }) {
       return;
     }
 
-    // 6. Confirm Check-In
-    const nowIso = new Date().toISOString();
-    const isLate = new Date(targetEvent.startTime).getTime() < Date.now();
-    const newStatus = isLate ? 'late' : 'checkedIn';
+    // 6. Confirm Check-In in Database
+    try {
+      await checkInStudent(user.uid, targetEvent.id, scannedToken);
+      const nowIso = new Date().toISOString();
+      const isLate = new Date(targetEvent.startTime).getTime() < Date.now();
+      const newStatus = isLate ? 'late' : 'checkedIn';
 
-    setStudentRegs(prev => prev.map(r => r.id === existingReg.id ? { ...r, status: newStatus, checkInTime: nowIso } : r));
-    
-    alert(`✅ Check-in Successful! Attendance marked for ${targetEvent.title}.`);
-    setShowStudentScanner(false);
-
-    confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+      setStudentRegs(prev => prev.map(r => r.id === existingReg.id ? { ...r, status: newStatus, checkInTime: nowIso } : r));
+      
+      alert(`✅ Check-in Successful! Attendance marked for ${targetEvent.title}.`);
+      setShowStudentScanner(false);
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+    } catch (err) {
+      alert(`Check-in Error: ${err.message || 'Could not record check-in in database.'}`);
+    }
   };
 
   useEffect(() => {
