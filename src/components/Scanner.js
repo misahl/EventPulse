@@ -108,10 +108,10 @@ export default function Scanner({ onScanSuccess, activeEventTitle }) {
   };
 
   return (
-    <div className="flex flex-col items-center p-6 rounded-2xl glass-panel bg-slate-950/60 max-w-md mx-auto border border-white/5 shadow-2xl">
-      <div className="w-full flex items-center justify-between mb-4 pb-3 border-b border-white/5">
-        <h3 className="text-base font-semibold text-slate-200 flex items-center space-x-2">
-          <Camera className="w-5 h-5 text-cyan-400" />
+    <div className="flex flex-col items-center p-4 sm:p-6 rounded-2xl glass-panel bg-slate-950/80 w-full max-w-sm sm:max-w-md mx-auto border border-white/10 shadow-2xl">
+      <div className="w-full flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+        <h3 className="text-sm sm:text-base font-semibold text-slate-200 flex items-center space-x-2">
+          <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
           <span>Organizer Camera Scanner</span>
         </h3>
         {scanning && (
@@ -124,19 +124,19 @@ export default function Scanner({ onScanSuccess, activeEventTitle }) {
 
       {activeEventTitle && (
         <div className="mb-4 text-center">
-          <span className="text-xs text-slate-500 block mb-0.5">Scanning For:</span>
-          <span className="text-sm font-semibold text-cyan-400">{activeEventTitle}</span>
+          <span className="text-xs text-slate-400 block mb-0.5">Scanning For:</span>
+          <span className="text-sm font-semibold text-cyan-400 line-clamp-1">{activeEventTitle}</span>
         </div>
       )}
 
       {/* Camera Selection Dropdown */}
       {!scanning && cameras.length > 1 && (
         <div className="w-full mb-4">
-          <label className="text-xs text-slate-400 block mb-1">Select Camera</label>
+          <label className="text-xs text-slate-400 block mb-1 font-medium">Select Camera</label>
           <select
             value={selectedCameraId}
             onChange={(e) => setSelectedCameraId(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-cyan-500"
+            className="w-full px-3 py-2.5 bg-slate-900 border border-white/10 rounded-xl text-slate-200 text-xs sm:text-sm focus:outline-none focus:border-cyan-500 min-h-[44px]"
           >
             {cameras.map((camera) => (
               <option key={camera.id} value={camera.id}>
@@ -148,38 +148,39 @@ export default function Scanner({ onScanSuccess, activeEventTitle }) {
       )}
 
       {/* Scanner Target Area */}
-      <div className="relative w-full aspect-square bg-slate-900/60 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center">
+      <div className="relative w-full max-w-[280px] aspect-square bg-slate-900/80 rounded-2xl overflow-hidden border border-white/10 flex items-center justify-center mx-auto">
         <div id={scannerContainerId} className="absolute inset-0 w-full h-full" />
 
         {!scanning && !scanResult && (
-          <div className="flex flex-col items-center text-slate-500 p-6 text-center">
-            <Camera className="w-12 h-12 mb-3 text-slate-600 animate-pulse-slow" />
-            <p className="text-sm">Camera is inactive</p>
-            <p className="text-xs mt-1 text-slate-600">Click Start Scanner below and allow access</p>
+          <div className="flex flex-col items-center text-slate-400 p-6 text-center">
+            <Camera className="w-10 h-10 mb-2 text-slate-500 animate-pulse" />
+            <p className="text-xs sm:text-sm font-medium">Camera is inactive</p>
+            <p className="text-[11px] mt-1 text-slate-500">Click Start Camera Scanner below</p>
           </div>
         )}
 
         {scanning && (
           <>
             {/* Visual Laser Line and corners */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] border-2 border-dashed border-cyan-500/40 pointer-events-none rounded-lg" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[2px] bg-cyan-500 shadow-md shadow-cyan-500/50 animate-bounce pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[210px] sm:w-[240px] h-[210px] sm:h-[240px] border-2 border-dashed border-cyan-500/50 pointer-events-none rounded-xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[210px] sm:w-[240px] h-[2px] bg-cyan-400 shadow-md shadow-cyan-400/60 animate-bounce pointer-events-none" />
           </>
         )}
 
         {scanResult && (
-          <div className="flex flex-col items-center bg-slate-950/90 absolute inset-0 z-10 p-6 justify-center text-center">
-            <CheckCircle2 className="w-12 h-12 text-emerald-400 mb-2 animate-bounce" />
-            <span className="text-sm font-semibold text-slate-200">QR Code Scanned!</span>
-            <span className="text-xs text-slate-400 mt-1 font-mono break-all line-clamp-2 px-4 max-w-[250px]">
+          <div className="flex flex-col items-center bg-slate-950/95 absolute inset-0 z-10 p-6 justify-center text-center">
+            <CheckCircle2 className="w-10 h-10 text-emerald-400 mb-2 animate-bounce" />
+            <span className="text-xs sm:text-sm font-semibold text-slate-200">QR Code Scanned!</span>
+            <span className="text-[11px] text-slate-400 mt-1 font-mono break-all line-clamp-2 px-3 max-w-[220px]">
               Token: {scanResult}
             </span>
             <button
+              type="button"
               onClick={() => {
                 setScanResult(null);
                 startScanner();
               }}
-              className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-xl text-slate-300 flex items-center space-x-1.5 transition-all duration-200"
+              className="mt-4 min-h-[44px] px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-xl text-slate-300 flex items-center space-x-1.5 transition-all cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Scan Next</span>
@@ -197,9 +198,10 @@ export default function Scanner({ onScanSuccess, activeEventTitle }) {
 
       {/* Start/Stop Button */}
       <button
+        type="button"
         onClick={toggleScan}
         disabled={!!scanResult}
-        className={`w-full mt-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg ${scanning
+        className={`w-full min-h-[44px] mt-4 py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center space-x-2 shadow-lg cursor-pointer ${scanning
             ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/10'
             : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-600/10 disabled:opacity-50'
           }`}

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
-import { ShieldCheck, Mail, Lock, User, Hash, BookOpen, Layers, Award, Tag } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, User, Hash, BookOpen, Layers, Award, Tag, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
   const { user, login, signUp, verifyOTP, resetPassword } = useAuth();
@@ -16,6 +16,7 @@ export default function Login() {
   // Form Fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [usn, setUsn] = useState('');
   const [role, setRole] = useState('student');
@@ -116,15 +117,15 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[75vh]">
-      <div className="w-full max-w-lg p-8 rounded-3xl bg-white border border-amber-200/80 shadow-xl relative">
+    <div className="flex items-center justify-center min-h-[80vh] px-3 py-6 sm:px-6 sm:py-10">
+      <div className="w-full max-w-md p-5 sm:p-8 rounded-3xl bg-white border border-amber-200/80 shadow-xl relative mx-auto">
         
         {/* Header Branding */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8">
           <div className="inline-flex p-3 rounded-2xl bg-amber-50 border border-amber-200 mb-3 shadow-xs">
             <ShieldCheck className="w-8 h-8 text-amber-600" />
           </div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
+          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
             {isVerifyingOTP 
               ? 'Campus Account Verification' 
               : isLogin 
@@ -146,8 +147,9 @@ export default function Login() {
         {!isVerifyingOTP && (
           <div className="flex border-b border-slate-200 mb-6">
             <button
+              type="button"
               onClick={() => { setIsLogin(true); setError(''); }}
-              className={`flex-1 pb-3 text-sm font-bold transition-all duration-200 ${
+              className={`flex-1 min-h-[44px] pb-2 text-sm font-bold transition-all duration-200 cursor-pointer ${
                 isLogin 
                   ? 'border-b-2 border-amber-500 text-amber-700' 
                   : 'text-slate-500 hover:text-slate-800'
@@ -156,8 +158,9 @@ export default function Login() {
               Log In
             </button>
             <button
+              type="button"
               onClick={() => { setIsLogin(false); setError(''); }}
-              className={`flex-1 pb-3 text-sm font-bold transition-all duration-200 ${
+              className={`flex-1 min-h-[44px] pb-2 text-sm font-bold transition-all duration-200 cursor-pointer ${
                 !isLogin 
                   ? 'border-b-2 border-amber-500 text-amber-700' 
                   : 'text-slate-500 hover:text-slate-800'
@@ -192,14 +195,14 @@ export default function Login() {
                   <p className="text-[11px] font-extrabold text-amber-900 uppercase tracking-wider flex items-center justify-center space-x-1">
                     <span>⚡ Local Demo Activation Code</span>
                   </p>
-                  <div className="flex items-center justify-center space-x-3 pt-0.5">
-                    <span className="text-2xl font-black font-mono tracking-widest text-amber-800 bg-white px-4 py-1 rounded-xl border border-amber-200 shadow-inner">
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-0.5">
+                    <span className="text-2xl font-black font-mono tracking-widest text-amber-800 bg-white px-4 py-1.5 rounded-xl border border-amber-200 shadow-inner w-full sm:w-auto">
                       {demoOTP}
                     </span>
                     <button
                       type="button"
                       onClick={() => setOtpCode(demoOTP)}
-                      className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+                      className="w-full sm:w-auto min-h-[44px] px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center"
                     >
                       Pre-Filled
                     </button>
@@ -219,14 +222,14 @@ export default function Login() {
                     placeholder="Enter 6-digit code"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-amber-300 rounded-2xl text-slate-900 text-base font-bold font-mono tracking-wider focus:outline-none focus:border-amber-500 shadow-xs"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-amber-300 rounded-2xl text-slate-900 text-base font-bold font-mono tracking-wider focus:outline-none focus:border-amber-500 shadow-xs min-h-[44px]"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3.5 mt-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-sm font-bold text-white shadow-md transition-all duration-200 cursor-pointer"
+                className="w-full min-h-[44px] py-3 mt-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-sm font-bold text-white shadow-md transition-all cursor-pointer flex items-center justify-center"
               >
                 Verify & Activate Account
               </button>
@@ -234,7 +237,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => { setIsVerifyingOTP(false); setError(''); }}
-                className="w-full py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+                className="w-full min-h-[44px] py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors flex items-center justify-center"
               >
                 Back to Authentication
               </button>
@@ -258,7 +261,7 @@ export default function Login() {
                       placeholder="e.g. Rahul Sharma"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500 min-h-[44px]"
                     />
                   </div>
                 </div>
@@ -277,7 +280,7 @@ export default function Login() {
                     placeholder="student@college.edu"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500 min-h-[44px]"
                   />
                 </div>
               </div>
@@ -290,20 +293,28 @@ export default function Login() {
                     <Lock className="w-4 h-4" />
                   </span>
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500"
+                    className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500 min-h-[44px]"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-amber-600 transition-colors cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4 text-amber-600" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
                 {isLogin && (
                   <div className="flex justify-end pt-1">
                     <button
                       type="button"
                       onClick={handleForgotPassword}
-                      className="text-xs font-bold text-amber-600 hover:text-amber-700 transition-colors cursor-pointer"
+                      className="text-xs font-bold text-amber-600 hover:text-amber-700 transition-colors cursor-pointer py-1"
                     >
                       Forgot password?
                     </button>
@@ -321,7 +332,7 @@ export default function Login() {
 
               {/* Student specific fields (Sign Up only) */}
               {!isLogin && role === 'student' && (
-                <div className="grid grid-cols-2 gap-4 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div className="space-y-1">
                     <label className="text-xs text-slate-700 font-semibold">Student ID / USN</label>
                     <div className="relative">
@@ -334,7 +345,7 @@ export default function Login() {
                         placeholder="e.g. STU2026001"
                         value={usn}
                         onChange={(e) => setUsn(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500 min-h-[44px]"
                       />
                     </div>
                   </div>
@@ -348,7 +359,7 @@ export default function Login() {
                       <select
                         value={year}
                         onChange={(e) => setYear(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500 min-h-[44px]"
                       >
                         <option value="1">1st Year</option>
                         <option value="2">2nd Year</option>
@@ -372,7 +383,7 @@ export default function Login() {
                       <select
                         value={department}
                         onChange={(e) => setDepartment(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500 min-h-[44px]"
                       >
                         <option value="CSE">Computer Science (CSE)</option>
                         <option value="AIML">CSE - AI & Machine Learning (AIML)</option>
@@ -396,7 +407,7 @@ export default function Login() {
                           placeholder="e.g. AI, Web, Robotics, Python, Data Science"
                           value={interestsInput}
                           onChange={(e) => setInterestsInput(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500"
+                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-amber-500 min-h-[44px]"
                         />
                       </div>
                     </div>
@@ -407,7 +418,7 @@ export default function Login() {
               {/* Action Button */}
               <button
                 type="submit"
-                className={`w-full py-3 mt-4 rounded-full font-bold text-white shadow-md transition-all duration-300 ${
+                className={`w-full min-h-[44px] py-3 mt-4 rounded-full font-bold text-white shadow-md transition-all duration-300 flex items-center justify-center cursor-pointer ${
                   isLogin 
                     ? 'bg-amber-600 hover:bg-amber-700' 
                     : 'bg-emerald-600 hover:bg-emerald-700'

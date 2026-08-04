@@ -1129,6 +1129,32 @@ function OrganizerDashboard({ user }) {
   const [orgDept, setOrgDept] = useState(user.department || 'CSE');
   const [orgFaculty, setOrgFaculty] = useState('');
   const [generatingOrgAiDesc, setGeneratingOrgAiDesc] = useState(false);
+  const [showOrgScanner, setShowOrgScanner] = useState(false);
+
+  const handleOrgScanSuccess = async (scannedToken) => {
+    try {
+      const verification = verifyRollingEventToken(scannedToken);
+      if (!verification.valid) {
+        alert(`❌ ${verification.error || 'Invalid or Expired QR Code!'}`);
+        return;
+      }
+
+      if (verification.eventId !== selectedEventId) {
+        alert(`⚠️ Event Mismatch! Scanned QR token is for a different event.`);
+        return;
+      }
+
+      const targetReg = activeRegistrations.find(r => r.studentId === verification.studentId || r.qrToken === scannedToken);
+      if (targetReg) {
+        await handleUpdateStudentStatus(targetReg.id, 'checkedIn');
+        alert(`✅ Attendance Verified! USN: ${targetReg.studentUSN || targetReg.studentId} marked as Attended.`);
+      } else {
+        alert(`✅ Attendance Scanned! Valid dynamic token verified for student.`);
+      }
+    } catch (err) {
+      alert(`❌ Scan Error: ${err.message || 'Verification failed.'}`);
+    }
+  };
 
   const handleGenerateOrgAIDesc = async () => {
     setGeneratingOrgAiDesc(true);
@@ -1379,6 +1405,34 @@ function OrganizerDashboard({ user }) {
               <RollingQRPoster event={activeEvent} />
             )}
 
+            {/* ORGANIZER CAMERA SCANNER WIDGET */}
+            {activeEvent && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-amber-200/80 shadow-md space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Camera className="w-4 h-4 text-amber-600" />
+                    <h3 className="text-xs sm:text-sm font-extrabold text-slate-800">Organizer Camera Scanner</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowOrgScanner(!showOrgScanner)}
+                    className="min-h-[44px] px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center space-x-1"
+                  >
+                    <span>{showOrgScanner ? '✕ Hide Scanner' : '📷 Open Camera Scanner'}</span>
+                  </button>
+                </div>
+
+                {showOrgScanner && (
+                  <div className="pt-2 animate-in fade-in zoom-in-95">
+                    <Scanner
+                      onScanSuccess={handleOrgScanSuccess}
+                      activeEventTitle={activeEvent.title}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
 
 
           </div>
@@ -1443,7 +1497,7 @@ function OrganizerDashboard({ user }) {
         ) : (
           <div className="rounded-2xl bg-white border border-slate-200 shadow-md overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full text-left border-collapse text-xs min-w-[640px]">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 uppercase tracking-wider font-mono font-bold">
                     <th className="px-6 py-4">USN</th>
@@ -1527,7 +1581,7 @@ function OrganizerDashboard({ user }) {
 // ============================================================================
 function StudentDashboard({ user }) {
   const { events } = useEvents();
-  const { getStudentRegistrations, subscribeToStudentRegistrations } = useAttendance();
+  const { getStudentRegistrations, subscribeToStudentRegistrations, checkInStudent } = useAttendance();
   const [studentRegs, setStudentRegs] = useState([]);
   const [loadingRegs, setLoadingRegs] = useState(true);
 
@@ -1902,8 +1956,9 @@ function DynamicStudentPassModal({ studentId, eventId, eventTitle, initialToken,
         </div>
 
         <button
+          type="button"
           onClick={onClose}
-          className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-xs font-bold rounded-xl text-white transition-colors cursor-pointer"
+          className="w-full min-h-[44px] py-2.5 bg-slate-900 hover:bg-slate-800 text-xs font-bold rounded-xl text-white transition-colors cursor-pointer flex items-center justify-center"
         >
           Close Pass
         </button>

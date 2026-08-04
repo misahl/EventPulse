@@ -174,38 +174,39 @@ export default function Home() {
       )}
 
       {/* Hero Welcome Section - Universal Campus Theme */}
-      <section className="relative rounded-3xl bg-gradient-to-br from-white via-amber-50/40 to-emerald-50/30 p-8 md:p-12 overflow-hidden border border-amber-200/70 shadow-lg">
+      <section className="relative rounded-3xl bg-gradient-to-br from-white via-amber-50/40 to-emerald-50/30 p-5 sm:p-8 md:p-12 overflow-hidden border border-amber-200/70 shadow-lg">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-amber-200/30 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
         
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-10 relative z-10">
-          <div className="flex-1 space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full text-xs font-bold bg-amber-100 border border-amber-300 text-amber-800 tracking-wide shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-              <span>Universal Campus & University Event Platform</span>
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 sm:gap-10 relative z-10">
+          <div className="flex-1 space-y-4 sm:space-y-6 text-center lg:text-left">
+            <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full text-xs font-bold bg-amber-100 border border-amber-300 text-amber-800 tracking-wide shadow-xs max-w-full">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0"></span>
+              <span className="truncate">Universal Campus & University Event Platform</span>
             </div>
             
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
               Reimagining Campus <br className="hidden sm:inline" />
               <span className="text-amber-600">Events & Smart Attendance</span>
             </h1>
             
-            <p className="text-slate-600 text-sm md:text-base leading-relaxed max-w-xl mx-auto lg:mx-0 font-medium">
+            <p className="text-slate-600 text-xs sm:text-sm md:text-base leading-relaxed max-w-xl mx-auto lg:mx-0 font-medium">
               Discover technical symposia, workshops, cultural fests, and guest lectures across Engineering, Arts, Management, and Science departments. Register seamlessly with dynamic digital QR passes.
             </p>
 
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2">
               <button
+                type="button"
                 onClick={() => {
                   const elem = document.getElementById('hot-events-section') || document.getElementById('events-explorer');
                   elem?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="px-6 py-3 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold shadow-md flex items-center space-x-2 cursor-pointer transition-all hover:scale-105"
+                className="min-h-[44px] px-6 py-3 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold shadow-md flex items-center justify-center space-x-2 cursor-pointer transition-all hover:scale-105"
               >
                 <span>Explore Events</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
               {!user && (
-                <Link href="/login" className="px-6 py-3 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold flex items-center space-x-2">
+                <Link href="/login" className="min-h-[44px] px-6 py-3 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold flex items-center justify-center space-x-2">
                   <span>Student & Faculty Portal</span>
                 </Link>
               )}
@@ -215,14 +216,14 @@ export default function Home() {
           {/* Dynamic Static QR code poster */}
           <div 
             onClick={handleSimulateScan}
-            className="p-6 rounded-2xl bg-white max-w-sm w-full border border-amber-300 hover:border-amber-500 shadow-xl flex flex-col items-center text-center relative group cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
+            className="p-5 sm:p-6 rounded-2xl bg-white max-w-xs sm:max-w-sm w-full border border-amber-300 hover:border-amber-500 shadow-xl flex flex-col items-center text-center relative group cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] mx-auto"
           >
             <div className="absolute -top-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-extrabold text-[10px] uppercase tracking-widest px-3 py-0.5 rounded-full shadow-md flex items-center space-x-1">
               <Sparkles className="w-3 h-3 text-amber-200" />
               <span>Active Events Scanner</span>
             </div>
             <div className="p-3 bg-white rounded-2xl my-3 border border-amber-100 shadow-inner transform transition-transform group-hover:scale-105">
-              <QRCodeSVG value={getAbsoluteRedirectUrl()} size={150} />
+              <QRCodeSVG value={getAbsoluteRedirectUrl()} size={140} />
             </div>
             <span className="text-xs font-bold text-slate-800 flex items-center space-x-1.5 justify-center mb-1 group-hover:text-amber-600 transition-colors">
               <QrCode className="w-4 h-4 text-amber-600" />
@@ -233,7 +234,7 @@ export default function Home() {
             </p>
             <button 
               type="button"
-              className="w-full py-2 px-4 rounded-xl bg-amber-50 group-hover:bg-amber-500 text-amber-900 group-hover:text-white font-extrabold text-xs border border-amber-200 group-hover:border-amber-500 transition-all flex items-center justify-center space-x-1.5 shadow-xs"
+              className="w-full min-h-[44px] py-2 px-4 rounded-xl bg-amber-50 group-hover:bg-amber-500 text-amber-900 group-hover:text-white font-extrabold text-xs border border-amber-200 group-hover:border-amber-500 transition-all flex items-center justify-center space-x-1.5 shadow-xs cursor-pointer"
             >
               <QrCode className="w-3.5 h-3.5" />
               <span>Scan or Click for Active Events</span>
@@ -243,7 +244,7 @@ export default function Home() {
       </section>
 
       {/* Most Hyped & Hot Campus Events Shortcuts */}
-      <section id="hot-events-section" className="grid grid-cols-2 md:grid-cols-4 gap-4 scroll-mt-24">
+      <section id="hot-events-section" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 scroll-mt-24">
         
         {/* 1. SYNERGIA Mega Fest */}
         <div 
@@ -251,7 +252,7 @@ export default function Home() {
             setSelectedCategory('Flagship Fest');
             document.getElementById('events-explorer')?.scrollIntoView({ behavior: 'smooth' });
           }}
-          className="p-5 rounded-2xl bg-white border border-amber-300 hover:border-amber-500 cursor-pointer shadow-xs hover:shadow-md transition-all group flex flex-col justify-between space-y-3 relative overflow-hidden"
+          className="p-4 sm:p-5 rounded-2xl bg-white border border-amber-300 hover:border-amber-500 cursor-pointer shadow-xs hover:shadow-md transition-all group flex flex-col justify-between space-y-3 relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
             <SynergiaLogo className="h-7 py-1 px-2 text-[9px]" />
@@ -273,7 +274,7 @@ export default function Home() {
             setSelectedCategory('Hackathons');
             document.getElementById('events-explorer')?.scrollIntoView({ behavior: 'smooth' });
           }}
-          className="p-5 rounded-2xl bg-white border border-emerald-300 hover:border-emerald-500 cursor-pointer shadow-xs hover:shadow-md transition-all group flex flex-col justify-between space-y-3"
+          className="p-4 sm:p-5 rounded-2xl bg-white border border-emerald-300 hover:border-emerald-500 cursor-pointer shadow-xs hover:shadow-md transition-all group flex flex-col justify-between space-y-3"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-1.5">
@@ -296,7 +297,7 @@ export default function Home() {
             setSelectedCategory('Technical');
             document.getElementById('events-explorer')?.scrollIntoView({ behavior: 'smooth' });
           }}
-          className="p-5 rounded-2xl bg-white border border-amber-300 hover:border-amber-500 cursor-pointer shadow-xs hover:shadow-md transition-all group flex flex-col justify-between space-y-3"
+          className="p-4 sm:p-5 rounded-2xl bg-white border border-amber-300 hover:border-amber-500 cursor-pointer shadow-xs hover:shadow-md transition-all group flex flex-col justify-between space-y-3"
         >
           <div className="flex items-center justify-between">
             <div className="p-2.5 rounded-xl bg-amber-100 border border-amber-300 text-amber-800 group-hover:bg-amber-500 group-hover:text-white transition-colors">
@@ -318,7 +319,7 @@ export default function Home() {
             setSelectedCategory('Cultural');
             document.getElementById('events-explorer')?.scrollIntoView({ behavior: 'smooth' });
           }}
-          className="p-5 rounded-2xl bg-white border border-emerald-300 hover:border-emerald-500 cursor-pointer shadow-xs hover:shadow-md transition-all group flex flex-col justify-between space-y-3"
+          className="p-4 sm:p-5 rounded-2xl bg-white border border-emerald-300 hover:border-emerald-500 cursor-pointer shadow-xs hover:shadow-md transition-all group flex flex-col justify-between space-y-3"
         >
           <div className="flex items-center justify-between">
             <div className="p-2.5 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-800 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
@@ -339,34 +340,37 @@ export default function Home() {
       <section id="events-explorer" className="space-y-6 pt-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900 flex items-center space-x-2">
-              <Calendar className="w-6 h-6 text-amber-600" />
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center space-x-2">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />
               <span>Campus Approved Events</span>
             </h2>
             <p className="text-xs text-slate-500">Browse official campus events across all academic departments</p>
           </div>
           
           {/* Search Inputs */}
-          <div className="relative flex-1 max-w-md">
+          <div className="relative w-full md:max-w-md">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-600" />
             <input
               type="text"
               placeholder="Search event title, venue or description..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-amber-500 shadow-xs"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-amber-500 shadow-xs min-h-[44px]"
             />
           </div>
         </div>
 
         {/* Filters Panel */}
-        <div className="flex flex-wrap items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
-          <Filter className="w-4 h-4 text-amber-600 mr-1" />
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <div className="flex items-center space-x-1.5 text-slate-600 text-xs font-bold px-1">
+            <Filter className="w-4 h-4 text-amber-600" />
+            <span>Filters:</span>
+          </div>
           
           <select
             value={selectedDept}
             onChange={(e) => setSelectedDept(e.target.value)}
-            className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-amber-500"
+            className="w-full sm:w-auto px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-amber-500 min-h-[44px]"
           >
             <option value="all">All Departments</option>
             <option value="CSE">Computer Science (CSE)</option>
@@ -379,7 +383,7 @@ export default function Home() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-amber-500"
+            className="w-full sm:w-auto px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-amber-500 min-h-[44px]"
           >
             <option value="all">All Categories</option>
             <option value="Flagship Fest">🌟 Flagship Fest (Synergia)</option>
@@ -468,30 +472,33 @@ export default function Home() {
       </section>
 
       {/* EVENT DETAILS MODAL */}
+      {/* Selected Event Details Modal */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="w-full max-w-xl p-8 rounded-3xl bg-white border border-slate-200 shadow-2xl relative space-y-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-xl p-5 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-2xl relative space-y-4 sm:space-y-6 max-h-[90vh] overflow-y-auto my-auto">
             
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start gap-2">
               <div>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 border border-amber-300 text-amber-800 uppercase tracking-wide">
                   {selectedEvent.category}
                 </span>
-                <h2 className="text-2xl font-bold text-slate-900 mt-2">{selectedEvent.title}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mt-2">{selectedEvent.title}</h2>
               </div>
               <button 
+                type="button"
                 onClick={() => setSelectedEvent(null)}
-                className="p-1.5 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200"
+                className="min-h-[44px] min-w-[44px] rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 flex items-center justify-center cursor-pointer flex-shrink-0 text-xl font-bold"
+                aria-label="Close modal"
               >
                 &times;
               </button>
             </div>
 
-            <p className="text-sm text-slate-600 leading-relaxed font-medium">
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
               {selectedEvent.description}
             </p>
 
-            <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
               <div className="space-y-1">
                 <span className="text-slate-500 block text-[11px]">Timings</span>
                 <span className="font-semibold text-slate-900">
@@ -530,16 +537,17 @@ export default function Home() {
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-              <span className="text-xs text-slate-600 flex items-center space-x-1.5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-slate-200">
+              <span className="text-xs text-slate-600 flex items-center justify-center sm:justify-start space-x-1.5">
                 <Users className="w-4 h-4 text-amber-600" />
                 <span>Occupancy: <b className="text-slate-900">{selectedEvent.currentOccupancy}</b> / {selectedEvent.capacity} seats</span>
               </span>
               
               <button
+                type="button"
                 onClick={() => handleRegister(selectedEvent.id)}
                 disabled={registering || selectedEvent.currentOccupancy >= selectedEvent.capacity}
-                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50 text-sm font-bold rounded-full shadow-md transition-all duration-200"
+                className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50 text-sm font-bold rounded-full shadow-md transition-all flex items-center justify-center cursor-pointer"
               >
                 {registering 
                   ? 'Registering...' 
