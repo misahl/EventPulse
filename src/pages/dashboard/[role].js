@@ -645,9 +645,26 @@ function OrganizerDashboard({ user }) {
     return initialRegs;
   };
 
-  const activeRegistrations = (registrations && registrations.length > 0)
+  const [overrideRegistrations, setOverrideRegistrations] = useState(null);
+
+  const activeRegistrations = overrideRegistrations || ((registrations && registrations.length > 0)
     ? registrations
-    : generateDefaultUSNList(selectedEventId);
+    : generateDefaultUSNList(selectedEventId));
+
+  const handleUpdateStudentStatus = (regId, newStatus) => {
+    const nowIso = new Date().toISOString();
+    const updated = activeRegistrations.map(r => {
+      if (r.id === regId) {
+        return {
+          ...r,
+          status: newStatus,
+          checkInTime: (newStatus === 'checkedIn' || newStatus === 'late') ? (r.checkInTime || nowIso) : null
+        };
+      }
+      return r;
+    });
+    setOverrideRegistrations(updated);
+  };
 
   const filteredRegistrations = activeRegistrations.filter(r => {
     const matchesDept = filterDept === 'all' || r.studentDepartment === filterDept;
@@ -978,21 +995,50 @@ function OrganizerDashboard({ user }) {
                       <td className="px-6 py-4 font-mono font-bold text-amber-700">{reg.studentUSN || 'MOCK_USN'}</td>
                       <td className="px-6 py-4 font-semibold text-slate-900">{reg.studentName}</td>
                       <td className="px-6 py-4 text-slate-600 font-medium">{reg.studentDepartment}</td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase shadow-xs ${
-                          reg.status === 'checkedIn' 
-                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
-                          reg.status === 'late' 
-                            ? 'bg-amber-100 text-amber-900 border border-amber-300' :
-                          reg.status === 'checkedOut' 
-                            ? 'bg-slate-100 text-slate-700 border border-slate-300' :
-                            'bg-rose-100 text-rose-900 border border-rose-300'
-                        }`}>
-                          {reg.status === 'checkedIn' ? '🟢 Attended' :
-                           reg.status === 'late' ? '🟡 Late Comers' :
-                           reg.status === 'checkedOut' ? '⚪ Checked Out' :
-                           '🔴 Not Attended'}
-                        </span>
+                      <td className="px-4 py-3 text-center">
+                        <div className="inline-flex items-center p-1 bg-slate-100 rounded-full border border-slate-200 space-x-1 shadow-inner">
+                          {/* 🟢 ATTENDED TICK BOX */}
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateStudentStatus(reg.id, 'checkedIn')}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold flex items-center space-x-1 transition-all cursor-pointer ${
+                              reg.status === 'checkedIn'
+                                ? 'bg-emerald-600 text-white shadow-xs scale-105'
+                                : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50'
+                            }`}
+                            title="Click to mark as Attended"
+                          >
+                            <span>🟢 Attended</span>
+                          </button>
+
+                          {/* 🟡 LATE TICK BOX */}
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateStudentStatus(reg.id, 'late')}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold flex items-center space-x-1 transition-all cursor-pointer ${
+                              reg.status === 'late'
+                                ? 'bg-amber-500 text-white shadow-xs scale-105'
+                                : 'text-slate-600 hover:text-amber-700 hover:bg-amber-50'
+                            }`}
+                            title="Click to mark as Late Comer"
+                          >
+                            <span>🟡 Late</span>
+                          </button>
+
+                          {/* 🔴 NOT ATTENDED TICK BOX */}
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateStudentStatus(reg.id, 'registered')}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold flex items-center space-x-1 transition-all cursor-pointer ${
+                              reg.status === 'registered' || reg.status === 'absent'
+                                ? 'bg-rose-600 text-white shadow-xs scale-105'
+                                : 'text-slate-600 hover:text-rose-700 hover:bg-rose-50'
+                            }`}
+                            title="Click to mark as Not Attended"
+                          >
+                            <span>🔴 Not Attended</span>
+                          </button>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-right font-mono text-slate-500">
                         {reg.checkInTime
