@@ -1273,13 +1273,7 @@ function OrganizerDashboard({ user }) {
               <RollingQRPoster event={activeEvent} />
             )}
 
-            {/* ORGANIZER SCANNER INTEGRATION */}
-            {activeEvent && (
-              <Scanner
-                onScanSuccess={handleScanSuccess}
-                activeEventTitle={activeEvent.title}
-              />
-            )}
+
 
           </div>
         )}
