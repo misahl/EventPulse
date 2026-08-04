@@ -1666,16 +1666,25 @@ function StudentDashboard({ user }) {
 
     // 6. Confirm Check-In in Database
     try {
-      await checkInStudent(user.uid, targetEvent.id, scannedToken);
       const nowIso = new Date().toISOString();
-      const isLate = new Date(targetEvent.startTime).getTime() < Date.now();
-      const newStatus = isLate ? 'late' : 'checkedIn';
+      await updateRegistrationStatus(existingReg.id || `reg_${user.uid}_${targetEvent.id}`, 'checkedIn', nowIso, {
+        ...existingReg,
+        studentId: user.uid,
+        studentUSN: user.usn || existingReg.studentUSN || '',
+        studentName: user.name || existingReg.studentName || 'Student',
+        studentDepartment: user.department || existingReg.studentDepartment || 'CSE',
+        eventId: targetEvent.id,
+        status: 'checkedIn',
+        checkInTime: nowIso
+      });
 
-      setStudentRegs(prev => prev.map(r => r.id === existingReg.id ? { ...r, status: newStatus, checkInTime: nowIso } : r));
+      setStudentRegs(prev => prev.map(r => r.eventId === targetEvent.id ? { ...r, status: 'checkedIn', checkInTime: nowIso } : r));
       
-      alert(`✅ Check-in Successful! Attendance marked for ${targetEvent.title}.`);
+      alert(`✅ Check-in Successful! Attendance marked as Attended (🟢) for ${targetEvent.title}.`);
       setShowStudentScanner(false);
-      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+      try {
+        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+      } catch (e) {}
     } catch (err) {
       alert(`Check-in Error: ${err.message || 'Could not record check-in in database.'}`);
     }
