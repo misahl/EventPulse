@@ -31,7 +31,7 @@ function saveMockUsers(users) {
 // Helper to get active session user
 export function getSessionUser() {
   if (typeof window === 'undefined') return null;
-  const data = localStorage.getItem(SESSION_USER_KEY);
+  const data = sessionStorage.getItem(SESSION_USER_KEY) || localStorage.getItem(SESSION_USER_KEY);
   return data ? JSON.parse(data) : null;
 }
 
@@ -39,8 +39,9 @@ export function getSessionUser() {
 function setSessionUser(user) {
   if (typeof window === 'undefined') return;
   if (user) {
-    localStorage.setItem(SESSION_USER_KEY, JSON.stringify(user));
+    sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(user));
   } else {
+    sessionStorage.removeItem(SESSION_USER_KEY);
     localStorage.removeItem(SESSION_USER_KEY);
   }
 }

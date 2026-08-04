@@ -1,6 +1,6 @@
 // src/firebase/config.js
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -30,9 +30,12 @@ if (!isMock) {
     db = getFirestore(app);
     auth = getAuth(app);
     
-    // Log active mode to console on startup
+    // Enable per-tab session persistence so multiple tabs can log into different accounts (Student, Organizer, Admin)
     if (typeof window !== 'undefined') {
-      console.log("%c🔥 Connected to live Firebase", "color: #10b981; font-weight: bold; font-size: 14px;");
+      setPersistence(auth, browserSessionPersistence).catch((err) => {
+        console.warn('Could not set session persistence:', err);
+      });
+      console.log("%c🔥 Connected to live Firebase (Multi-Tab Session Isolated)", "color: #10b981; font-weight: bold; font-size: 14px;");
     } else {
       console.log("🔥 Connected to live Firebase");
     }
