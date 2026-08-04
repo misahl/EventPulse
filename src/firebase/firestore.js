@@ -209,10 +209,112 @@ function saveMockEvents(events) {
   localStorage.setItem(MOCK_EVENTS_KEY, JSON.stringify(events));
 }
 
+function generateInitialUSNRegistrations() {
+  const sampleNames = [
+    'Aarav Sharma', 'Ananya Bhat', 'Mohammed Mishal', 'Rahul Shetty', 'Priya Naik',
+    'Vikram Rao', 'Sneha Hegde', 'Karthik Poojary', 'Divya Kulkarni', 'Aditya Verma',
+    'Meera D Souza', 'Rohan Fernandes', 'Nisha Rai', 'Siddharth Pai', 'Deepa Kamath',
+    'Varun Shenoy', 'Tanvi Prabhu', 'Yashwant Gowda', 'Swathi Acharya', 'Abhinav Patel',
+    'Bhavana Joshi', 'Chandan Kumar', 'Dhanush Reddy', 'Eesha Deshmukh', 'Farhan Khan',
+    'Gautam Nayak', 'Harshitha R', 'Ishan Varma', 'Jyothi M', 'Kiran Kumar'
+  ];
+
+  const initialRegs = [];
+
+  // Generate AIML Students (4SF24CI001 to 4SF24CI050)
+  for (let i = 1; i <= 50; i++) {
+    const padNum = String(i).padStart(3, '0');
+    const usn = `4SF24CI${padNum}`;
+    const name = sampleNames[(i - 1) % sampleNames.length] + (i > 30 ? ` ${i}` : '');
+    
+    // Distribute statuses: ~50% Green Attended, ~20% Yellow Late, ~30% Red Absent
+    let status = 'checkedIn';
+    let checkInTime = new Date(Date.now() - Math.random() * 3600000).toISOString();
+    if (i % 5 === 0) {
+      status = 'late';
+    } else if (i % 3 === 0) {
+      status = 'registered';
+      checkInTime = null;
+    }
+
+    initialRegs.push({
+      id: `reg_aiml_${usn}`,
+      studentId: `std_aiml_${usn}`,
+      studentName: name,
+      studentUSN: usn,
+      studentDepartment: 'AIML',
+      eventId: 'event_synergia_2025',
+      qrToken: `MOCK_TOKEN_AIML_${usn}`,
+      status,
+      checkInTime,
+      checkOutTime: null,
+      registeredAt: new Date().toISOString()
+    });
+
+    initialRegs.push({
+      id: `reg_whiz_${usn}`,
+      studentId: `std_aiml_${usn}`,
+      studentName: name,
+      studentUSN: usn,
+      studentDepartment: 'AIML',
+      eventId: 'event_whiz_quiz_2025',
+      qrToken: `MOCK_TOKEN_WHIZ_${usn}`,
+      status: i % 2 === 0 ? 'checkedIn' : 'registered',
+      checkInTime: i % 2 === 0 ? new Date().toISOString() : null,
+      checkOutTime: null,
+      registeredAt: new Date().toISOString()
+    });
+  }
+
+  // Generate CSE Students (4SF24CS001 to 4SF24CS050)
+  for (let i = 1; i <= 50; i++) {
+    const padNum = String(i).padStart(3, '0');
+    const usn = `4SF24CS${padNum}`;
+    const name = sampleNames[(i - 1) % sampleNames.length] + (i > 30 ? ` ${i}` : '');
+    
+    let status = 'checkedIn';
+    let checkInTime = new Date(Date.now() - Math.random() * 3600000).toISOString();
+    if (i % 4 === 0) {
+      status = 'late';
+    } else if (i % 3 === 0) {
+      status = 'registered';
+      checkInTime = null;
+    }
+
+    initialRegs.push({
+      id: `reg_cse_${usn}`,
+      studentId: `std_cse_${usn}`,
+      studentName: name,
+      studentUSN: usn,
+      studentDepartment: 'CSE',
+      eventId: 'event_synergia_2025',
+      qrToken: `MOCK_TOKEN_CSE_${usn}`,
+      status,
+      checkInTime,
+      checkOutTime: null,
+      registeredAt: new Date().toISOString()
+    });
+  }
+
+  return initialRegs;
+}
+
 function getMockRegistrations() {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined') return generateInitialUSNRegistrations();
   const data = localStorage.getItem(MOCK_REGISTRATIONS_KEY);
-  return data ? JSON.parse(data) : [];
+  if (!data) {
+    const initial = generateInitialUSNRegistrations();
+    saveMockRegistrations(initial);
+    return initial;
+  }
+  const parsed = JSON.parse(data);
+  // Ensure AIML/CSE 4SF24 USNs exist
+  if (!parsed.some(r => r.studentUSN && r.studentUSN.startsWith('4SF24CI'))) {
+    const initial = generateInitialUSNRegistrations();
+    saveMockRegistrations(initial);
+    return initial;
+  }
+  return parsed;
 }
 
 function saveMockRegistrations(regs) {
@@ -410,9 +512,21 @@ export async function fetchEventRegistrations(eventId) {
 
 export function subscribeToEventRegistrations(eventId, callback) {
   if (isMock) {
-    callback(getMockRegistrations().filter(r => r.eventId === eventId));
+    const allRegs = getMockRegistrations();
+    let eventRegs = allRegs.filter(r => r.eventId === eventId);
+    
+    // If no registrations exist for this specific eventId, auto-generate and save 100 USNs for this eventId
+    if (eventRegs.length === 0) {
+      const generated = generateInitialUSNRegistrations().map(r => ({ ...r, eventId }));
+      const updatedAll = [...allRegs, ...generated];
+      saveMockRegistrations(updatedAll);
+      eventRegs = generated;
+    }
+
+    callback(eventRegs);
     const interval = setInterval(() => {
-      callback(getMockRegistrations().filter(r => r.eventId === eventId));
+      const current = getMockRegistrations().filter(r => r.eventId === eventId);
+      callback(current.length > 0 ? current : eventRegs);
     }, 2000);
     return () => clearInterval(interval);
   } else {

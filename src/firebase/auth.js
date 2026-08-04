@@ -110,34 +110,45 @@ export async function signUpUser({ email, password, name, usn, role, department,
     return newUser;
   } else {
     // Real Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const firebaseUser = userCredential.user;
-    
-    await updateProfile(firebaseUser, { displayName: name });
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+      
+      await updateProfile(firebaseUser, { displayName: name });
 
-    const userProfile = {
-      uid: firebaseUser.uid,
-      email,
-      name,
-      usn: usn || '',
-      role: role || 'student',
-      department: department || '',
-      year: year || '',
-      interests: interests || [],
-      status: 'pending',
-      otpCode,
-      createdAt: new Date().toISOString()
-    };
+      const userProfile = {
+        uid: firebaseUser.uid,
+        email,
+        name,
+        usn: usn || '',
+        role: role || 'student',
+        department: department || '',
+        year: year || '',
+        interests: interests || [],
+        status: 'pending',
+        otpCode,
+        createdAt: new Date().toISOString()
+      };
 
-    // Save profile in Firestore
-    await setDoc(doc(db, 'users', firebaseUser.uid), userProfile);
-    
-    console.log(`[REAL FIREBASE AUTH] Created account for ${email}. Activation OTP is: ${otpCode}`);
-    
-    // Trigger Server API to deliver the real email (or log to server console as fallback)
-    await triggerOTPEmail(email, otpCode);
+      // Save profile in Firestore
+      await setDoc(doc(db, 'users', firebaseUser.uid), userProfile);
+      
+      console.log(`[REAL FIREBASE AUTH] Created account for ${email}. Activation OTP is: ${otpCode}`);
+      
+      // Trigger Server API to deliver the real email (or log to server console as fallback)
+      await triggerOTPEmail(email, otpCode);
 
-    return userProfile;
+      return userProfile;
+    } catch (firebaseErr) {
+      if (firebaseErr.code === 'auth/email-already-in-use') {
+        throw new Error('This email is already registered. Please click "Sign In" instead!');
+      } else if (firebaseErr.code === 'auth/weak-password') {
+        throw new Error('Password must be at least 6 characters long.');
+      } else if (firebaseErr.code === 'auth/invalid-email') {
+        throw new Error('Please enter a valid email address.');
+      }
+      throw new Error(firebaseErr.message || 'Registration failed.');
+    }
   }
 }
 
@@ -212,18 +223,32 @@ export async function loginUser(email, password) {
     return user;
   } else {
     // Real Firebase Auth
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const firebaseUser = userCredential.user;
-    
-    // Fetch profile
-    const userDocRef = doc(db, 'users', firebaseUser.uid);
-    const userDoc = await getDoc(userDocRef);
-    
-    if (!userDoc.exists()) {
-      throw new Error('User profile database entry not found');
-    }
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+      
+      // Fetch profile
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (!userDoc.exists()) {
+        // Fallback default profile if not present
+        return {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          name: firebaseUser.displayName || 'Campus User',
+          role: 'student',
+          status: 'active'
+        };
+      }
 
-    return userDoc.data();
+      return userDoc.data();
+    } catch (firebaseErr) {
+      if (firebaseErr.code === 'auth/user-not-found' || firebaseErr.code === 'auth/wrong-password' || firebaseErr.code === 'auth/invalid-credential') {
+        throw new Error('Invalid email or password. Please check your credentials or sign up!');
+      }
+      throw new Error(firebaseErr.message || 'Login failed.');
+    }
   }
 }
 

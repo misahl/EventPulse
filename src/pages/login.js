@@ -375,6 +375,7 @@ export default function Login() {
                       >
                         <option value="CSE">Computer Science (CSE)</option>
                         <option value="AIML">CSE - AI & Machine Learning (AIML)</option>
+                        <option value="CSE (AIML)">CSE (AIML)</option>
                         <option value="ISE">Information Science (ISE)</option>
                         <option value="ECE">Electronics & Communication (ECE)</option>
                         <option value="ME">Mechanical Engineering (ME)</option>

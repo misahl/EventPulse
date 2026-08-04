@@ -107,6 +107,31 @@ export default function Home() {
     }
   };
 
+  const handleSimulateScan = () => {
+    const now = new Date().getTime();
+    const active = events.find(e => {
+      if (e.status !== 'approved') return false;
+      const start = new Date(e.startTime).getTime();
+      const end = new Date(e.endTime).getTime();
+      return now >= start && now <= end;
+    });
+
+    if (active) {
+      setSelectedEvent(active);
+      showToast(`📱 Dynamic QR Scanned! Resolved active event: ${active.title}`, 'success');
+    } else {
+      const upcoming = [...events]
+        .filter(e => e.status === 'approved')
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+      if (upcoming.length > 0) {
+        setSelectedEvent(upcoming[0]);
+        showToast(`📱 Dynamic QR Scanned! Resolved featured event: ${upcoming[0].title}`, 'success');
+      } else {
+        showToast('No approved active or upcoming events found.', 'warning');
+      }
+    }
+  };
+
   const filteredEvents = events.filter(e => {
     if (e.status !== 'approved') return false;
 
@@ -184,20 +209,31 @@ export default function Home() {
           </div>
 
           {/* Dynamic Static QR code poster */}
-          <div className="p-6 rounded-2xl bg-white max-w-sm w-full border border-amber-200 shadow-xl flex flex-col items-center text-center relative group">
-            <div className="absolute -top-3 bg-amber-500 text-white font-extrabold text-[10px] uppercase tracking-widest px-3 py-0.5 rounded-full shadow-md">
-              Dynamic Pass Scanner
+          <div 
+            onClick={handleSimulateScan}
+            className="p-6 rounded-2xl bg-white max-w-sm w-full border border-amber-300 hover:border-amber-500 shadow-xl flex flex-col items-center text-center relative group cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
+          >
+            <div className="absolute -top-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-extrabold text-[10px] uppercase tracking-widest px-3 py-0.5 rounded-full shadow-md flex items-center space-x-1">
+              <Sparkles className="w-3 h-3 text-amber-200" />
+              <span>Dynamic Pass Scanner</span>
             </div>
-            <div className="p-3 bg-white rounded-2xl my-3 border border-slate-100 shadow-inner transform transition-transform group-hover:scale-105">
+            <div className="p-3 bg-white rounded-2xl my-3 border border-amber-100 shadow-inner transform transition-transform group-hover:scale-105">
               <QRCodeSVG value={getAbsoluteRedirectUrl()} size={150} />
             </div>
-            <span className="text-xs font-bold text-slate-800 flex items-center space-x-1.5 justify-center mb-1">
+            <span className="text-xs font-bold text-slate-800 flex items-center space-x-1.5 justify-center mb-1 group-hover:text-amber-600 transition-colors">
               <QrCode className="w-4 h-4 text-amber-600" />
               <span>Campus Dynamic QR Poster</span>
             </span>
-            <p className="text-[10px] text-slate-500 max-w-[220px] leading-tight">
-              Scans automatically redirect to `/api/active-redirect` to check-in or register for the currently running active event.
+            <p className="text-[10px] text-slate-500 max-w-[220px] leading-tight mb-3">
+              Scans automatically resolve active campus events to register or check in.
             </p>
+            <button 
+              type="button"
+              className="w-full py-2 px-4 rounded-xl bg-amber-50 group-hover:bg-amber-500 text-amber-900 group-hover:text-white font-extrabold text-xs border border-amber-200 group-hover:border-amber-500 transition-all flex items-center justify-center space-x-1.5 shadow-xs"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Click to Scan & Register</span>
+            </button>
           </div>
         </div>
       </section>
