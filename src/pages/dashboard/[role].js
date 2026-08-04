@@ -1116,6 +1116,44 @@ function OrganizerDashboard({ user }) {
   const countAttended = activeRegistrations.filter(r => r.status === 'checkedIn').length;
   const countLate = activeRegistrations.filter(r => r.status === 'late').length;
   const countNotAttended = activeRegistrations.filter(r => r.status === 'registered' || r.status === 'absent').length;
+  const totalRegistered = activeRegistrations.length;
+  const attendanceRate = totalRegistered > 0 ? Math.round(((countAttended + countLate) / totalRegistered) * 100) : 0;
+
+  // Department breakdown analytics
+  const deptAnalytics = React.useMemo(() => {
+    const depts = {};
+    activeRegistrations.forEach(r => {
+      const dept = r.studentDepartment || 'Unknown';
+      if (!depts[dept]) depts[dept] = { total: 0, attended: 0, late: 0, absent: 0 };
+      depts[dept].total++;
+      if (r.status === 'checkedIn') depts[dept].attended++;
+      else if (r.status === 'late') depts[dept].late++;
+      else depts[dept].absent++;
+    });
+    return Object.entries(depts).map(([dept, stats]) => ({
+      dept,
+      ...stats,
+      rate: stats.total > 0 ? Math.round(((stats.attended + stats.late) / stats.total) * 100) : 0
+    })).sort((a, b) => b.total - a.total);
+  }, [activeRegistrations]);
+
+  // Check-in timeline (group by hour)
+  const checkInTimeline = React.useMemo(() => {
+    const hours = {};
+    activeRegistrations.forEach(r => {
+      if (r.checkInTime) {
+        const h = new Date(r.checkInTime).getHours();
+        const label = `${h % 12 || 12}${h < 12 ? 'am' : 'pm'}`;
+        hours[label] = (hours[label] || 0) + 1;
+      }
+    });
+    return Object.entries(hours).map(([time, count]) => ({ time, count })).sort((a, b) => {
+      const toNum = t => { const h = parseInt(t); return t.includes('pm') && h !== 12 ? h + 12 : (t.includes('am') && h === 12 ? 0 : h); };
+      return toNum(a.time) - toNum(b.time);
+    });
+  }, [activeRegistrations]);
+
+  const maxCheckInCount = checkInTimeline.length > 0 ? Math.max(...checkInTimeline.map(t => t.count)) : 1;
 
   const exportAttendanceCSV = () => {
     if (filteredRegistrations.length === 0) {
@@ -1487,6 +1525,156 @@ function OrganizerDashboard({ user }) {
 
 
 
+          </div>
+        )}
+      </div>
+
+      {/* ANALYTICS SECTION */}
+      <div className="lg:col-span-3 space-y-4">
+        <div className="flex items-center space-x-2 pb-1">
+          <Award className="w-5 h-5 text-amber-600" />
+          <h2 className="text-lg font-extrabold text-slate-900">Event Analytics</h2>
+          {activeEvent && <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">{activeEvent.title}</span>}
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider">Attended</span>
+              <span className="text-lg">🟢</span>
+            </div>
+            <div className="text-3xl font-black text-emerald-700">{countAttended}</div>
+            <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">On-time arrivals</div>
+          </div>
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-extrabold text-amber-700 uppercase tracking-wider">Late</span>
+              <span className="text-lg">🟡</span>
+            </div>
+            <div className="text-3xl font-black text-amber-700">{countLate}</div>
+            <div className="text-[10px] text-amber-600 font-semibold mt-0.5">Late arrivals</div>
+          </div>
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-50 to-rose-100 border border-rose-200 shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-extrabold text-rose-700 uppercase tracking-wider">Absent</span>
+              <span className="text-lg">🔴</span>
+            </div>
+            <div className="text-3xl font-black text-rose-700">{countNotAttended}</div>
+            <div className="text-[10px] text-rose-600 font-semibold mt-0.5">Did not attend</div>
+          </div>
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">Rate</span>
+              <span className="text-lg">📊</span>
+            </div>
+            <div className={`text-3xl font-black ${attendanceRate >= 75 ? 'text-emerald-700' : attendanceRate >= 50 ? 'text-amber-700' : 'text-rose-700'}`}>{attendanceRate}%</div>
+            <div className="text-[10px] text-slate-500 font-semibold mt-0.5">Attendance rate</div>
+          </div>
+        </div>
+
+        {/* Attendance Rate Bar + Dept Breakdown */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          {/* Attendance Rate Visual */}
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Overall Attendance Rate</h3>
+            <div className="flex items-center justify-center py-4">
+              <div className="relative w-32 h-32">
+                <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                  <circle cx="60" cy="60" r="48" fill="none" stroke="#f1f5f9" strokeWidth="12" />
+                  <circle
+                    cx="60" cy="60" r="48" fill="none"
+                    stroke={attendanceRate >= 75 ? '#10b981' : attendanceRate >= 50 ? '#f59e0b' : '#f43f5e'}
+                    strokeWidth="12"
+                    strokeDasharray={`${(attendanceRate / 100) * 301.6} 301.6`}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dasharray 1s ease' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={`text-2xl font-black ${attendanceRate >= 75 ? 'text-emerald-700' : attendanceRate >= 50 ? 'text-amber-700' : 'text-rose-700'}`}>{attendanceRate}%</span>
+                  <span className="text-[9px] text-slate-500 font-bold">of {totalRegistered}</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-emerald-700">🟢 On-Time</span>
+                <span className="font-mono text-slate-700">{countAttended} students</span>
+              </div>
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-amber-700">🟡 Late</span>
+                <span className="font-mono text-slate-700">{countLate} students</span>
+              </div>
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-rose-700">🔴 Absent</span>
+                <span className="font-mono text-slate-700">{countNotAttended} students</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Department Breakdown */}
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+            <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Department Breakdown</h3>
+            {deptAnalytics.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-6">No data available</p>
+            ) : (
+              <div className="space-y-2.5">
+                {deptAnalytics.map(({ dept, total, attended, late, absent, rate }) => (
+                  <div key={dept} className="space-y-1">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="font-extrabold text-slate-700">{dept}</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-slate-500">{attended + late}/{total}</span>
+                        <span className={`font-black ${rate >= 75 ? 'text-emerald-700' : rate >= 50 ? 'text-amber-700' : 'text-rose-700'}`}>{rate}%</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex">
+                      <div
+                        className="bg-emerald-500 h-full rounded-l-full transition-all duration-700"
+                        style={{ width: `${total > 0 ? (attended / total) * 100 : 0}%` }}
+                      />
+                      <div
+                        className="bg-amber-400 h-full transition-all duration-700"
+                        style={{ width: `${total > 0 ? (late / total) * 100 : 0}%` }}
+                      />
+                      <div
+                        className="bg-rose-400 h-full rounded-r-full transition-all duration-700"
+                        style={{ width: `${total > 0 ? (absent / total) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center space-x-3 pt-1 border-t border-slate-100">
+              <span className="flex items-center space-x-1 text-[9px] font-bold text-emerald-700"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span><span>Attended</span></span>
+              <span className="flex items-center space-x-1 text-[9px] font-bold text-amber-700"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span><span>Late</span></span>
+              <span className="flex items-center space-x-1 text-[9px] font-bold text-rose-700"><span className="w-2 h-2 rounded-full bg-rose-400 inline-block"></span><span>Absent</span></span>
+            </div>
+          </div>
+        </div>
+
+        {/* Check-in Timeline */}
+        {checkInTimeline.length > 0 && (
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Check-in Timeline</h3>
+              <span className="text-[10px] text-slate-500 font-semibold">{countAttended + countLate} total check-ins</span>
+            </div>
+            <div className="flex items-end space-x-2 h-24 overflow-x-auto pb-1">
+              {checkInTimeline.map(({ time, count }) => (
+                <div key={time} className="flex flex-col items-center space-y-1 flex-shrink-0">
+                  <span className="text-[9px] font-bold text-amber-700">{count}</span>
+                  <div
+                    className="w-8 bg-gradient-to-t from-amber-500 to-amber-300 rounded-t-lg transition-all duration-700 min-h-[4px]"
+                    style={{ height: `${Math.max(6, (count / maxCheckInCount) * 80)}px` }}
+                  />
+                  <span className="text-[9px] text-slate-500 font-mono">{time}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
