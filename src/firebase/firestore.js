@@ -341,7 +341,7 @@ export async function createEvent(eventData) {
     department: eventData.department || '',
     category: eventData.category || 'General',
     tags: eventData.tags || [],
-    status: 'pending', // pending -> approved | rejected
+    status: eventData.status || 'pending', // pending -> approved | rejected
     equipment: eventData.equipment || [],
     createdAt: new Date().toISOString()
   };

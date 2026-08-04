@@ -139,8 +139,8 @@ function AdminDashboard({ user }) {
     }
   }, [startTime, endTime, venue, facultyInCharge, equipmentInput]);
 
-  const handleCreateEvent = async (e) => {
-    e.preventDefault();
+  const handleCreateEvent = async (e, directStatus = 'pending') => {
+    if (e) e.preventDefault();
     const tags = tagsInput ? tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) : [];
     const equipment = equipmentInput ? equipmentInput.split(',').map(e => e.trim().toLowerCase()).filter(Boolean) : [];
 
@@ -148,7 +148,7 @@ function AdminDashboard({ user }) {
       title,
       description,
       venue,
-      facultyInCharge,
+      facultyInCharge: facultyInCharge || user.name,
       startTime,
       endTime,
       capacity,
@@ -156,6 +156,7 @@ function AdminDashboard({ user }) {
       department,
       tags,
       equipment,
+      status: directStatus
     };
 
     await addEvent(newEvent);
@@ -358,7 +359,7 @@ function AdminDashboard({ user }) {
               </div>
             )}
 
-            <div className="flex justify-end space-x-3 pt-2">
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
               <button
                 type="button" onClick={() => setShowCreateForm(false)}
                 className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
@@ -367,9 +368,17 @@ function AdminDashboard({ user }) {
               </button>
               <button
                 type="submit"
-                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded-xl text-white shadow-lg"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl text-slate-200 border border-slate-700"
               >
-                Propose Event
+                Propose to Queue
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleCreateEvent(e, 'approved')}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold rounded-xl text-white shadow-lg flex items-center space-x-1.5 cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Approve & Publish Immediately</span>
               </button>
             </div>
           </form>
@@ -671,15 +680,157 @@ function OrganizerDashboard({ user }) {
     a.click();
   };
 
+  const { addEvent } = useEvents();
+  const [showOrgCreateForm, setShowOrgCreateForm] = useState(false);
+  const [orgTitle, setOrgTitle] = useState('');
+  const [orgDesc, setOrgDesc] = useState('');
+  const [orgVenue, setOrgVenue] = useState('Ground Floor Seminar Hall');
+  const [orgStartTime, setOrgStartTime] = useState('');
+  const [orgEndTime, setOrgEndTime] = useState('');
+  const [orgCapacity, setOrgCapacity] = useState('100');
+  const [orgCategory, setOrgCategory] = useState('Technical');
+  const [orgDept, setOrgDept] = useState(user.department || 'CSE');
+
+  const handleOrgProposeEvent = async (e) => {
+    e.preventDefault();
+    await addEvent({
+      title: orgTitle,
+      description: orgDesc,
+      venue: orgVenue,
+      facultyInCharge: user.name,
+      startTime: orgStartTime,
+      endTime: orgEndTime,
+      capacity: orgCapacity,
+      category: orgCategory,
+      department: orgDept,
+      status: 'pending'
+    });
+    alert('🎉 Event proposal submitted! Sent to Faculty Admin for approval.');
+    setShowOrgCreateForm(false);
+    setOrgTitle('');
+    setOrgDesc('');
+    setOrgStartTime('');
+    setOrgEndTime('');
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
       {/* Event Selection & Live Occupancy Monitor */}
       <div className="space-y-6 lg:col-span-1">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-          <Award className="w-5 h-5 text-amber-600" />
-          <span>My Assigned Events</span>
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
+            <Award className="w-5 h-5 text-amber-600" />
+            <span>My Assigned Events</span>
+          </h2>
+          <button
+            onClick={() => setShowOrgCreateForm(!showOrgCreateForm)}
+            className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center space-x-1 cursor-pointer transition-all hover:scale-105"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Create Event</span>
+          </button>
+        </div>
+
+        {/* Organizer Event Proposal Form */}
+        {showOrgCreateForm && (
+          <form onSubmit={handleOrgProposeEvent} className="p-6 rounded-2xl bg-white border border-amber-300 shadow-xl space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="text-sm font-extrabold text-slate-900">Propose New Event</h3>
+              <button
+                type="button"
+                onClick={() => setShowOrgCreateForm(false)}
+                className="text-xs text-slate-400 hover:text-slate-700 font-bold"
+              >
+                &times; Close
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs text-slate-700 font-bold">Event Title</label>
+              <input
+                type="text" required placeholder="e.g. AI Vision Hackathon 2025" value={orgTitle}
+                onChange={(e) => setOrgTitle(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs text-slate-700 font-bold">Description</label>
+              <textarea
+                rows={2} required placeholder="Brief description of the event..." value={orgDesc}
+                onChange={(e) => setOrgDesc(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-slate-700 font-bold">Venue</label>
+                <select
+                  value={orgVenue} onChange={(e) => setOrgVenue(e.target.value)}
+                  className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-semibold focus:outline-none"
+                >
+                  <option value="Ground Floor Seminar Hall">Ground Floor Seminar Hall</option>
+                  <option value="1st Floor Seminar Hall">1st Floor Seminar Hall</option>
+                  <option value="2nd Floor Seminar Hall">2nd Floor Seminar Hall</option>
+                  <option value="AIML Lab-1">AIML Lab-1</option>
+                  <option value="AIML Lab-2">AIML Lab-2</option>
+                  <option value="Shaktikiran Seminar Hall">Shaktikiran Seminar Hall</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-slate-700 font-bold">Department</label>
+                <select
+                  value={orgDept} onChange={(e) => setOrgDept(e.target.value)}
+                  className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-semibold focus:outline-none"
+                >
+                  <option value="CSE">CSE</option>
+                  <option value="AIML">AIML</option>
+                  <option value="CSE (AIML)">CSE (AIML)</option>
+                  <option value="ISE">ISE</option>
+                  <option value="ECE">ECE</option>
+                  <option value="ME">ME</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-slate-700 font-bold">Start Time</label>
+                <input
+                  type="datetime-local" required value={orgStartTime}
+                  onChange={(e) => setOrgStartTime(e.target.value)}
+                  className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-slate-700 font-bold">End Time</label>
+                <input
+                  type="datetime-local" required value={orgEndTime}
+                  onChange={(e) => setOrgEndTime(e.target.value)}
+                  className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2">
+              <button
+                type="button" onClick={() => setShowOrgCreateForm(false)}
+                className="px-3.5 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer"
+              >
+                Submit Proposal to Admin
+              </button>
+            </div>
+          </form>
+        )}
 
         {organizerEvents.length === 0 ? (
           <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl text-slate-500 text-xs">
