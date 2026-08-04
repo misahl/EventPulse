@@ -931,9 +931,28 @@ function AdminDashboard({ user }) {
 function OrganizerDashboard({ user }) {
   const { events } = useEvents();
   const [selectedEventId, setSelectedEventId] = useState('');
-  const { registrations, checkInStudent, updateRegistrationStatus } = useAttendance(selectedEventId);
+  const { registrations, checkInStudent, updateRegistrationStatus, deleteRegistration } = useAttendance(selectedEventId);
   const [filterDept, setFilterDept] = useState('all');
   const [usnSearchTerm, setUsnSearchTerm] = useState('');
+
+  const handleDeleteStudentRegistration = async (reg) => {
+    const studentDisplayName = reg.studentName || reg.studentUSN || 'this student';
+    if (!window.confirm(`Are you sure you want to remove ${studentDisplayName} (${reg.studentUSN || 'MOCK_USN'}) from the USN Attendance Registry?`)) {
+      return;
+    }
+
+    try {
+      await deleteRegistration(reg.id, reg);
+      setOverrideRegistrations(prev => {
+        const base = prev || activeRegistrations;
+        return base.filter(r => r.id !== reg.id && r.studentUSN !== reg.studentUSN);
+      });
+      alert(`🗑️ Removed ${studentDisplayName} from attendance registry.`);
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert(`Error removing entry: ${err.message}`);
+    }
+  };
 
   const organizerEvents = events.filter(e => {
     if (e.status !== 'approved') return false;
@@ -1538,6 +1557,7 @@ function OrganizerDashboard({ user }) {
                     <th className="px-6 py-4">Department</th>
                     <th className="px-6 py-4 text-center">Status</th>
                     <th className="px-6 py-4 text-right">Time</th>
+                    <th className="px-4 py-4 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1595,6 +1615,16 @@ function OrganizerDashboard({ user }) {
                         {reg.checkInTime
                           ? new Date(reg.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                           : '--:--'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteStudentRegistration(reg)}
+                          className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white transition-all cursor-pointer inline-flex items-center justify-center shadow-xs"
+                          title="Delete Student Entry"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   ))}

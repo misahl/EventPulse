@@ -8,6 +8,7 @@ import {
   subscribeToEventRegistrations,
   subscribeToStudentRegistrations,
   updateRegistrationStatus,
+  deleteRegistration,
   executeCheckInTransaction
 } from '../firebase/firestore';
 
@@ -72,6 +73,7 @@ export function useAttendance(eventId = null) {
     getStudentRegistrations,
     subscribeToStudentRegistrations,
     updateRegistrationStatus,
+    deleteRegistration,
     checkInStudent,
   };
 }

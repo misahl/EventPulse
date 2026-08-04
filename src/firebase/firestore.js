@@ -538,6 +538,24 @@ export async function updateRegistrationStatus(regId, newStatus, customTime = nu
   }
 }
 
+export async function deleteRegistration(regId, fullRegData = null) {
+  if (isMock) {
+    const regs = getMockRegistrations();
+    const filtered = regs.filter(r => 
+      r.id !== regId && 
+      (!fullRegData || !r.studentUSN || r.studentUSN !== fullRegData.studentUSN || (r.eventId !== fullRegData.eventId && fullRegData.eventId !== 'all'))
+    );
+    saveMockRegistrations(filtered);
+  } else {
+    try {
+      const regRef = doc(db, 'registrations', regId);
+      await deleteDoc(regRef);
+    } catch (err) {
+      console.error('[deleteRegistration Error]', err);
+    }
+  }
+}
+
 export function subscribeToEventRegistrations(eventId, callback) {
   if (isMock) {
     const allRegs = getMockRegistrations();
