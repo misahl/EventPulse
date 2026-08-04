@@ -8,7 +8,7 @@ import { getRecommendations } from '../../lib/recommendation';
 import { QRCodeSVG } from 'qrcode.react';
 import Scanner from '../../components/Scanner';
 import RollingQRPoster from '../../components/RollingQRPoster';
-import { verifyRollingEventToken } from '../../lib/qrToken';
+import { generateToken, verifyRollingEventToken } from '../../lib/qrToken';
 import { createOrganizerAccount, getOrganizersList, updateOrganizerAccount, deleteOrganizerAccount } from '../../firebase/auth';
 import {
   ShieldAlert, User, Calendar, MapPin, Users, Award,
@@ -1431,6 +1431,7 @@ function StudentDashboard({ user }) {
   // Active QR Modal
   const [activeQrToken, setActiveQrToken] = useState('');
   const [activeQrTitle, setActiveQrTitle] = useState('');
+  const [activeQrEventId, setActiveQrEventId] = useState('');
 
   // Student Self Check-In Scanner State
   const [showStudentScanner, setShowStudentScanner] = useState(false);
@@ -1597,6 +1598,7 @@ function StudentDashboard({ user }) {
                         onClick={() => {
                           setActiveQrToken(reg.qrToken);
                           setActiveQrTitle(event.title);
+                          setActiveQrEventId(event.id);
                         }}
                         className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-xs font-extrabold rounded-xl text-white flex items-center space-x-1.5 shadow-xs transition-all cursor-pointer"
                       >
@@ -1667,43 +1669,19 @@ function StudentDashboard({ user }) {
         )}
       </div>
 
-      {/* SECURE QR CODE VIEW MODAL */}
+      {/* SECURE DYNAMIC QR CODE VIEW MODAL */}
       {activeQrToken && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm p-8 rounded-3xl bg-white border border-amber-200 shadow-2xl relative flex flex-col items-center text-center space-y-5 animate-in fade-in zoom-in-95">
-
-            <div className="w-full flex justify-between items-center pb-2 border-b border-slate-100">
-              <span className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Digital QR Ticket Pass</span>
-              <button
-                onClick={() => { setActiveQrToken(''); setActiveQrTitle(''); }}
-                className="p-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-lg leading-none w-6 h-6 flex items-center justify-center font-bold"
-              >
-                &times;
-              </button>
-            </div>
-
-            <span className="text-sm font-extrabold text-slate-900 line-clamp-1">{activeQrTitle}</span>
-
-            {/* Render unique secure QR token */}
-            <div className="p-4 bg-white rounded-2xl border border-amber-200 shadow-md">
-              <QRCodeSVG value={activeQrToken} size={180} />
-            </div>
-
-            <div className="text-xs text-slate-600 space-y-1 leading-relaxed">
-              <p className="font-extrabold text-amber-700">HMAC-SHA256 Cryptographically Signed</p>
-              <p className="text-[10px] text-slate-500 max-w-[220px] mx-auto">
-                Present this digital pass to the event marshal for instant camera check-in verification.
-              </p>
-            </div>
-
-            <button
-              onClick={() => { setActiveQrToken(''); setActiveQrTitle(''); }}
-              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-xs font-bold rounded-xl text-white transition-colors cursor-pointer"
-            >
-              Close Pass
-            </button>
-          </div>
-        </div>
+        <DynamicStudentPassModal
+          studentId={user ? user.uid : ''}
+          eventId={activeQrEventId}
+          eventTitle={activeQrTitle}
+          initialToken={activeQrToken}
+          onClose={() => {
+            setActiveQrToken('');
+            setActiveQrTitle('');
+            setActiveQrEventId('');
+          }}
+        />
       )}
 
       {/* STUDENT SELF CHECK-IN SCANNER MODAL */}
@@ -1735,6 +1713,98 @@ function StudentDashboard({ user }) {
         </div>
       )}
 
+    </div>
+  );
+}
+
+// ============================================================================
+// DYNAMIC STUDENT PASS MODAL (DYNAMIC LIVE ROTATING QR TOKEN)
+// ============================================================================
+function DynamicStudentPassModal({ studentId, eventId, eventTitle, initialToken, onClose }) {
+  const [currentToken, setCurrentToken] = useState(initialToken);
+  const [timeLeft, setTimeLeft] = useState(5); // 5-second cycle
+  const [renderKey, setRenderKey] = useState(0);
+
+  // 1-second countdown timer interval
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          return 5;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // When countdown hits 5 (cycle resets), generate fresh dynamic token
+  useEffect(() => {
+    if (timeLeft === 5) {
+      async function refreshPassToken() {
+        if (studentId && eventId) {
+          const freshToken = await generateToken(studentId, eventId, Date.now());
+          setCurrentToken(freshToken);
+          setRenderKey(k => k + 1);
+        }
+      }
+      refreshPassToken();
+    }
+  }, [timeLeft, studentId, eventId]);
+
+  const progressPercentage = ((5 - timeLeft) / 5) * 100;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div className="w-full max-w-sm p-7 rounded-3xl bg-white border border-amber-200 shadow-2xl relative flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95">
+
+        {/* Modal Header */}
+        <div className="w-full flex justify-between items-center pb-2 border-b border-slate-100">
+          <span className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center space-x-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <span>Live Dynamic Pass</span>
+          </span>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-lg leading-none w-6 h-6 flex items-center justify-center font-bold cursor-pointer"
+          >
+            &times;
+          </button>
+        </div>
+
+        <span className="text-sm font-extrabold text-slate-900 line-clamp-1">{eventTitle}</span>
+
+        {/* Render Live Dynamic QR Token */}
+        <div className="p-4 bg-white rounded-2xl border-2 border-amber-300 shadow-md relative flex flex-col items-center w-full">
+          <QRCodeSVG key={renderKey} value={currentToken || initialToken} size={185} />
+          
+          {/* Animated Countdown Progress Bar */}
+          <div className="w-full mt-3 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+            <div 
+              className="bg-gradient-to-r from-amber-500 to-emerald-500 h-full transition-all duration-1000 ease-linear rounded-full"
+              style={{ width: `${100 - progressPercentage}%` }}
+            />
+          </div>
+          <span className="text-[10px] font-mono font-bold text-amber-700 mt-1 flex items-center space-x-1">
+            <span>⚡ Dynamic QR rotates in {timeLeft}s</span>
+          </span>
+        </div>
+
+        <div className="text-xs text-slate-600 space-y-1 leading-relaxed">
+          <p className="font-extrabold text-amber-700">HMAC-SHA256 Anti-Screenshot Token</p>
+          <p className="text-[10px] text-slate-500 max-w-[230px] mx-auto">
+            This QR pass automatically rotates every 5 seconds. Present this live screen for instant scanner verification.
+          </p>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-xs font-bold rounded-xl text-white transition-colors cursor-pointer"
+        >
+          Close Pass
+        </button>
+      </div>
     </div>
   );
 }
