@@ -26,6 +26,12 @@ export default function Home() {
   const [toastMsg, setToastMsg] = useState('');
   const [toastType, setToastType] = useState('success');
 
+  const showToast = (msg, type = 'success') => {
+    setToastMsg(msg);
+    setToastType(type);
+    setTimeout(() => setToastMsg(''), 4000);
+  };
+
   // Load redirects or active QR events
   useEffect(() => {
     if (eventsLoading || events.length === 0) return;
@@ -35,7 +41,7 @@ export default function Home() {
     if (registerEvent) {
       const foundEvent = events.find(e => e.id === registerEvent);
       if (foundEvent) {
-        setSelectedEvent(foundEvent);
+        setTimeout(() => setSelectedEvent(foundEvent), 0);
       }
     } else if (resolveActive === 'true') {
       // Mock mode active redirect resolution
@@ -48,23 +54,23 @@ export default function Home() {
       });
 
       if (active) {
-        setSelectedEvent(active);
-        showToast(`Dynamic QR resolved active event: ${active.title}`, 'success');
+        setTimeout(() => setSelectedEvent(active), 0);
+        setTimeout(() => showToast(`Dynamic QR resolved active event: ${active.title}`, 'success'), 0);
       } else {
         const upcoming = [...events]
           .filter(e => e.status === 'approved' && new Date(e.startTime).getTime() > now)
           .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
         if (upcoming.length > 0) {
-          setSelectedEvent(upcoming[0]);
-          showToast(`No live events. Dynamic QR resolved next upcoming event: ${upcoming[0].title}`, 'info');
+          setTimeout(() => setSelectedEvent(upcoming[0]), 0);
+          setTimeout(() => showToast(`No live events. Dynamic QR resolved next upcoming event: ${upcoming[0].title}`, 'info'), 0);
         } else {
-          showToast('No approved active or upcoming events found.', 'warning');
+          setTimeout(() => showToast('No approved active or upcoming events found.', 'warning'), 0);
         }
       }
     } else if (noActiveEvent === 'true') {
-      showToast('No active events currently running.', 'warning');
+      setTimeout(() => showToast('No active events currently running.', 'warning'), 0);
     } else if (errorRedirect === 'true') {
-      showToast('Redirect failed. Please browse events manually.', 'error');
+      setTimeout(() => showToast('Redirect failed. Please browse events manually.', 'error'), 0);
     }
 
     if (router.query.scrollToEvents === 'true') {
@@ -76,12 +82,6 @@ export default function Home() {
       }, 250);
     }
   }, [router.query, events, eventsLoading]);
-
-  const showToast = (msg, type = 'success') => {
-    setToastMsg(msg);
-    setToastType(type);
-    setTimeout(() => setToastMsg(''), 4000);
-  };
 
   const handleRegister = async (eventId) => {
     if (!user) {

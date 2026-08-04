@@ -15,7 +15,7 @@ export function useEvents() {
 
   // Subscribe to real-time events on mount
   useEffect(() => {
-    setLoading(true);
+    setTimeout(() => setLoading(true), 0);
     const unsubscribe = subscribeToEvents((data) => {
       setEvents(data);
       setLoading(false);

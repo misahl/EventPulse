@@ -30,12 +30,14 @@ export default function Login() {
     if (user && user.status === 'active') {
       router.push(`/dashboard/${user.role}`);
     } else if (user && user.status === 'pending') {
-      setIsVerifyingOTP(true);
-      setEmail(user.email);
-      if (user.otpCode) {
-        setDemoOTP(user.otpCode);
-        setOtpCode(user.otpCode);
-      }
+      setTimeout(() => {
+        setIsVerifyingOTP(true);
+        setEmail(user.email || '');
+        if (user.otpCode) {
+          setDemoOTP(user.otpCode);
+          setOtpCode(user.otpCode);
+        }
+      }, 0);
     }
   }, [user, router]);
 

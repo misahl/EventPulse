@@ -81,3 +81,67 @@ function mockHmac(string, key) {
   }
   return 'mock_' + Math.abs(hash).toString(16);
 }
+
+/**
+ * Generates a rolling event QR token that rotates every TTL seconds (default 30s).
+ * Payload format: eventId:timestampWindow:ttl
+ */
+export function generateRollingEventToken(eventId, secret = 'eventpulse-default-secret-key-12345', ttlSeconds = 30) {
+  const currentWindow = Math.floor(Date.now() / (ttlSeconds * 1000));
+  const payload = `${eventId}:${currentWindow}:${ttlSeconds}`;
+  const signature = mockHmac(payload, secret);
+  const encodedPayload = typeof window !== 'undefined'
+    ? window.btoa(payload)
+    : Buffer.from(payload).toString('base64');
+  return `${encodedPayload}.${signature}`;
+}
+
+/**
+ * Validates a scanned rolling event QR token against current and immediate previous window.
+ * Returns { valid: boolean, eventId: string, error?: string }
+ */
+export function verifyRollingEventToken(token, secret = 'eventpulse-default-secret-key-12345', maxAllowedWindowsDelta = 1) {
+  if (!token || typeof token !== 'string') {
+    return { valid: false, error: 'Invalid or empty QR code token.' };
+  }
+  const parts = token.split('.');
+  if (parts.length !== 2) {
+    return { valid: false, error: 'Malformed QR code format.' };
+  }
+
+  const [encodedPayload, signature] = parts;
+  let payload = '';
+  try {
+    payload = typeof window !== 'undefined'
+      ? window.atob(encodedPayload)
+      : Buffer.from(encodedPayload, 'base64').toString('utf8');
+  } catch (e) {
+    return { valid: false, error: 'Invalid base64 payload.' };
+  }
+
+  const expectedSignature = mockHmac(payload, secret);
+  if (signature !== expectedSignature) {
+    return { valid: false, error: 'Counterfeit or tampered QR code signature!' };
+  }
+
+  const [eventId, tokenWindowStr, ttlStr] = payload.split(':');
+  const tokenWindow = parseInt(tokenWindowStr, 10);
+  const ttlSeconds = parseInt(ttlStr, 10) || 30;
+
+  if (!eventId || isNaN(tokenWindow)) {
+    return { valid: false, error: 'Invalid event data inside token.' };
+  }
+
+  const currentWindow = Math.floor(Date.now() / (ttlSeconds * 1000));
+
+  // Check if token window matches current window (or 1 window ago for network delays)
+  if (Math.abs(currentWindow - tokenWindow) > maxAllowedWindowsDelta) {
+    return {
+      valid: false,
+      eventId,
+      error: 'Expired QR Code! Screenshots or shared old codes cannot be reused. Please scan the current live QR code on the organizer screen.'
+    };
+  }
+
+  return { valid: true, eventId };
+}

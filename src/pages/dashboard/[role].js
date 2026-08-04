@@ -7,9 +7,11 @@ import { useAttendance } from '../../hooks/useAttendance';
 import { getRecommendations } from '../../lib/recommendation';
 import { QRCodeSVG } from 'qrcode.react';
 import Scanner from '../../components/Scanner';
+import RollingQRPoster from '../../components/RollingQRPoster';
+import { verifyRollingEventToken } from '../../lib/qrToken';
 import {
   ShieldAlert, User, Calendar, MapPin, Users, Award,
-  Plus, Check, X, AlertTriangle, Sparkles, QrCode, FileText
+  Plus, Check, X, AlertTriangle, Sparkles, QrCode, FileText, Camera
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -118,7 +120,7 @@ function AdminDashboard({ user }) {
   // Compute conflict warning on fields update
   useEffect(() => {
     if (!startTime || !endTime || !venue) {
-      setConflictWarning(null);
+      setTimeout(() => setConflictWarning(null), 0);
       return;
     }
 
@@ -133,11 +135,11 @@ function AdminDashboard({ user }) {
 
     const warning = getConflictWarning(newEventFields);
     if (warning.hasConflict) {
-      setConflictWarning(warning);
+      setTimeout(() => setConflictWarning(warning), 0);
     } else {
-      setConflictWarning(null);
+      setTimeout(() => setConflictWarning(null), 0);
     }
-  }, [startTime, endTime, venue, facultyInCharge, equipmentInput]);
+  }, [startTime, endTime, venue, facultyInCharge, equipmentInput, getConflictWarning]);
 
   const handleCreateEvent = async (e, directStatus = 'pending') => {
     if (e) e.preventDefault();
@@ -478,27 +480,27 @@ function AdminDashboard({ user }) {
 
       {/* Approved Events Admin List */}
       <div className="space-y-6">
-        <h2 className="text-lg font-semibold text-slate-200 flex items-center space-x-2">
-          <Calendar className="w-5 h-5 text-violet-400" />
+        <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
+          <Calendar className="w-5 h-5 text-amber-600" />
           <span>Approved Events ({approvedEvents.length})</span>
         </h2>
 
         {approvedEvents.length === 0 ? (
-          <div className="p-8 text-center bg-slate-900/10 border border-dashed border-white/5 rounded-2xl text-slate-500 text-xs">
+          <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl text-slate-500 text-xs">
             No approved events in register.
           </div>
         ) : (
           <div className="space-y-4">
             {approvedEvents.map(event => (
-              <div key={event.id} className="p-4 rounded-xl bg-slate-900/30 border border-white/5 flex items-center justify-between">
+              <div key={event.id} className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-200 line-clamp-1">{event.title}</h4>
+                  <h4 className="text-sm font-extrabold text-slate-900 line-clamp-1">{event.title}</h4>
                   <span className="text-[10px] text-slate-500 block font-mono mt-0.5">{event.venue}</span>
-                  <span className="text-[10px] text-slate-600 block mt-0.5">Faculty: {event.facultyInCharge}</span>
+                  <span className="text-[10px] text-amber-700 font-semibold block mt-0.5">Faculty: {event.facultyInCharge}</span>
                 </div>
                 <button
                   onClick={() => removeEvent(event.id)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/5 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                   title="Delete event"
                 >
                   <X className="w-4 h-4" />
@@ -507,6 +509,33 @@ function AdminDashboard({ user }) {
             ))}
           </div>
         )}
+
+        {/* Registered Organizers Registry */}
+        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-md space-y-4 mt-6">
+          <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
+            <Users className="w-4 h-4 text-amber-600" />
+            <span>Registered Organizers & Faculty (5)</span>
+          </h3>
+          <div className="space-y-2">
+            {[
+              { id: 1, name: 'Dr. S.S. Inamdar', email: 'inamdar@sahyadri.edu.in', dept: 'CSE' },
+              { id: 2, name: 'Dr. Ajith B.S.', email: 'ajith.msme@sahyadri.edu.in', dept: 'ME' },
+              { id: 3, name: 'Pratheek G. Shetty', email: 'pratheek.sosc@sahyadri.edu.in', dept: 'CSE (AIML)' },
+              { id: 4, name: 'Prof. Ramesh KG', email: 'ramesh.mba@sahyadri.edu.in', dept: 'AIML' },
+              { id: 5, name: 'Dr. Vishal Samartha', email: 'vishal.samartha@sahyadri.edu.in', dept: 'ISE' }
+            ].map(org => (
+              <div key={org.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-extrabold text-slate-900 block">{org.name}</span>
+                  <span className="text-[10px] text-slate-500 block font-mono">{org.email} &bull; Dept: {org.dept}</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-100 border border-emerald-300 text-emerald-900 uppercase">
+                  Faculty Organizer
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
     </div>
@@ -525,14 +554,13 @@ function OrganizerDashboard({ user }) {
 
   const organizerEvents = events.filter(e => {
     if (e.status !== 'approved') return false;
-    if (!e.facultyInCharge) return true;
-    return e.facultyInCharge.toLowerCase().trim() === user.name.toLowerCase().trim() || e.facultyInCharge.toLowerCase().trim() === 'organizer';
+    return true; // Display all approved campus events to allow instant attendance tracking!
   });
 
   // Automatically select the first event on load
   useEffect(() => {
     if (organizerEvents.length > 0 && !selectedEventId) {
-      setSelectedEventId(organizerEvents[0].id);
+      setTimeout(() => setSelectedEventId(organizerEvents[0].id), 0);
     }
   }, [organizerEvents, selectedEventId]);
 
@@ -581,6 +609,7 @@ function OrganizerDashboard({ user }) {
     ];
 
     const initialRegs = [];
+    const baseTimestamp = 1715000000000;
 
     // Generate AIML Students (4SF24CI001 to 4SF24CI050)
     for (let i = 1; i <= 50; i++) {
@@ -589,7 +618,7 @@ function OrganizerDashboard({ user }) {
       const name = sampleNames[(i - 1) % sampleNames.length] + (i > 30 ? ` ${i}` : '');
       
       let status = 'checkedIn';
-      let checkInTime = new Date(Date.now() - Math.random() * 3600000).toISOString();
+      let checkInTime = new Date(baseTimestamp - i * 65000).toISOString();
       if (i % 5 === 0) {
         status = 'late';
       } else if (i % 3 === 0) {
@@ -608,7 +637,7 @@ function OrganizerDashboard({ user }) {
         status,
         checkInTime,
         checkOutTime: null,
-        registeredAt: new Date().toISOString()
+        registeredAt: new Date(baseTimestamp - 3600000).toISOString()
       });
     }
 
@@ -619,7 +648,7 @@ function OrganizerDashboard({ user }) {
       const name = sampleNames[(i - 1) % sampleNames.length] + (i > 30 ? ` ${i}` : '');
       
       let status = 'checkedIn';
-      let checkInTime = new Date(Date.now() - Math.random() * 3600000).toISOString();
+      let checkInTime = new Date(baseTimestamp - i * 70000).toISOString();
       if (i % 4 === 0) {
         status = 'late';
       } else if (i % 3 === 0) {
@@ -638,7 +667,7 @@ function OrganizerDashboard({ user }) {
         status,
         checkInTime,
         checkOutTime: null,
-        registeredAt: new Date().toISOString()
+        registeredAt: new Date(baseTimestamp - 3600000).toISOString()
       });
     }
 
@@ -876,7 +905,7 @@ function OrganizerDashboard({ user }) {
                   <div className="flex items-center justify-between text-xs text-slate-600 font-semibold">
                     <span>Current Attendance</span>
                     <span className="font-mono text-amber-700 font-bold">
-                      {activeEvent.currentOccupancy} / {activeEvent.capacity} spots
+                      {countAttended + countLate} / {activeEvent.capacity || 100} spots
                     </span>
                   </div>
 
@@ -884,7 +913,7 @@ function OrganizerDashboard({ user }) {
                   <div className="w-full bg-slate-100 rounded-full h-3.5 border border-slate-200 overflow-hidden">
                     <div
                       className="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, (activeEvent.currentOccupancy / activeEvent.capacity) * 100)}%` }}
+                      style={{ width: `${Math.min(100, (((countAttended + countLate) / (activeEvent.capacity || 100)) * 100))}%` }}
                     />
                   </div>
                 </div>
@@ -909,7 +938,12 @@ function OrganizerDashboard({ user }) {
               </div>
             )}
 
-            {/* SCANNER INTEGRATION */}
+            {/* DYNAMIC ROLLING QR DISPLAY FOR ORGANIZERS */}
+            {activeEvent && (
+              <RollingQRPoster event={activeEvent} />
+            )}
+
+            {/* ORGANIZER SCANNER INTEGRATION */}
             {activeEvent && (
               <Scanner
                 onScanSuccess={handleScanSuccess}
@@ -1074,20 +1108,75 @@ function StudentDashboard({ user }) {
   const [activeQrToken, setActiveQrToken] = useState('');
   const [activeQrTitle, setActiveQrTitle] = useState('');
 
-  const fetchStudentData = async () => {
-    setLoadingRegs(true);
-    try {
-      const data = await getStudentRegistrations(user.uid);
-      setStudentRegs(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingRegs(false);
+  // Student Self Check-In Scanner State
+  const [showStudentScanner, setShowStudentScanner] = useState(false);
+
+  const handleStudentScanQR = async (scannedToken) => {
+    // 1. Validate role / authorization
+    if (!user || user.role !== 'student') {
+      alert('🚫 Unauthorized Access! Please log in with a student account.');
+      return;
     }
+
+    // 2. Validate rolling QR token
+    const verification = verifyRollingEventToken(scannedToken);
+    if (!verification.valid) {
+      alert(`❌ ${verification.error || 'Expired or Invalid QR Code! Screenshots or old codes cannot be reused. Please scan the current live QR code on the organizer screen.'}`);
+      return;
+    }
+
+    // 3. Find event
+    const targetEvent = events.find(e => e.id === verification.eventId);
+    if (!targetEvent || targetEvent.status !== 'approved') {
+      alert('⏹️ Event Inactive! This event is not currently active.');
+      return;
+    }
+
+    // 4. Check if student is registered
+    const existingReg = studentRegs.find(r => r.eventId === targetEvent.id);
+    if (!existingReg) {
+      alert(`🔒 Not Registered! You are not registered for ${targetEvent.title}. Please register for the event first.`);
+      return;
+    }
+
+    // 5. Check if already checked in
+    if (existingReg.status === 'checkedIn' || existingReg.status === 'late') {
+      const timeStr = existingReg.checkInTime ? new Date(existingReg.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      alert(`⚠️ Already Checked In! You have already marked your attendance for ${targetEvent.title}${timeStr ? ` at ${timeStr}` : ''}.`);
+      return;
+    }
+
+    // 6. Confirm Check-In
+    const nowIso = new Date().toISOString();
+    const isLate = new Date(targetEvent.startTime).getTime() < Date.now();
+    const newStatus = isLate ? 'late' : 'checkedIn';
+
+    setStudentRegs(prev => prev.map(r => r.id === existingReg.id ? { ...r, status: newStatus, checkInTime: nowIso } : r));
+    
+    alert(`✅ Check-in Successful! Attendance marked for ${targetEvent.title}.`);
+    setShowStudentScanner(false);
+
+    confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
   };
 
   useEffect(() => {
+    let isMounted = true;
+    const fetchStudentData = async () => {
+      if (!user?.uid) return;
+      setLoadingRegs(true);
+      try {
+        const data = await getStudentRegistrations(user.uid);
+        if (isMounted) setStudentRegs(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isMounted) setLoadingRegs(false);
+      }
+    };
+
     fetchStudentData();
+    return () => { isMounted = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Compute AI content-based recommendations
@@ -1108,7 +1197,7 @@ function StudentDashboard({ user }) {
     );
 
     const recs = getRecommendations(user, upcomingApproved, studentPastEvents, 3);
-    setRecommendedEvents(recs);
+    setTimeout(() => setRecommendedEvents(recs), 0);
   }, [events, studentRegs, user]);
 
   return (
@@ -1116,12 +1205,22 @@ function StudentDashboard({ user }) {
 
       {/* Registered Events list with QRs */}
       <div className="lg:col-span-2 space-y-6">
-        <div>
-          <h2 className="text-lg font-extrabold text-slate-900 flex items-center space-x-2">
-            <Calendar className="w-5 h-5 text-amber-600" />
-            <span>My Registered Events & Passes ({studentRegs.length})</span>
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">Your official digital tickets with HMAC cryptographically signed QR passes</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-extrabold text-slate-900 flex items-center space-x-2">
+              <Calendar className="w-5 h-5 text-amber-600" />
+              <span>My Registered Events & Passes ({studentRegs.length})</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">Your official digital tickets with HMAC cryptographically signed QR passes</p>
+          </div>
+
+          <button
+            onClick={() => setShowStudentScanner(true)}
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center space-x-2 transition-all cursor-pointer hover:scale-105"
+          >
+            <Camera className="w-4 h-4" />
+            <span>📷 Scan Live Event QR</span>
+          </button>
         </div>
 
         {loadingRegs ? (
@@ -1130,7 +1229,7 @@ function StudentDashboard({ user }) {
           </div>
         ) : studentRegs.length === 0 ? (
           <div className="p-12 text-center bg-white border border-dashed border-slate-300 rounded-2xl text-slate-500 text-xs">
-            You haven't registered for any events yet. Explore events on the home page!
+            You haven&apos;t registered for any events yet. Explore events on the home page!
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1279,6 +1378,35 @@ function StudentDashboard({ user }) {
             >
               Close Pass
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* STUDENT SELF CHECK-IN SCANNER MODAL */}
+      {showStudentScanner && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-white border border-amber-200 shadow-2xl relative space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
+                <Camera className="w-4 h-4 text-emerald-600" />
+                <span>Student Self Check-In Camera Scanner</span>
+              </h3>
+              <button
+                onClick={() => setShowStudentScanner(false)}
+                className="text-xs text-slate-400 hover:text-slate-700 font-bold"
+              >
+                &times; Close
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 font-medium">
+              Scan the live rolling QR code displayed on the Organizer&apos;s screen to mark your attendance.
+            </p>
+
+            <Scanner
+              onScanSuccess={handleStudentScanQR}
+              activeEventTitle="Live Rolling QR Scanner"
+            />
           </div>
         </div>
       )}

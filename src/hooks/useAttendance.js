@@ -17,11 +17,11 @@ export function useAttendance(eventId = null) {
   // If eventId is provided, subscribe to that event's registrations (real-time listener)
   useEffect(() => {
     if (!eventId) {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 0);
       return;
     }
 
-    setLoading(true);
+    setTimeout(() => setLoading(true), 0);
     const unsubscribe = subscribeToEventRegistrations(eventId, (data) => {
       setRegistrations(data);
       setLoading(false);

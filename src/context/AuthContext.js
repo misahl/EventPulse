@@ -31,12 +31,14 @@ export function AuthProvider({ children }) {
       // Mock mode session restore
       const sessionUser = getSessionUser();
       console.log('[AuthContext init] Mock mode: Restoring sessionUser =', sessionUser);
-      if (sessionUser && sessionUser.status === 'active') {
-        setUser(sessionUser);
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
+      setTimeout(() => {
+        if (sessionUser && sessionUser.status === 'active') {
+          setUser(sessionUser);
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      }, 0);
     } else {
       // Real Firebase onAuthStateChanged
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {

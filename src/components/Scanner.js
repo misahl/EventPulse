@@ -13,59 +13,6 @@ export default function Scanner({ onScanSuccess, activeEventTitle }) {
   const qrCodeInstance = useRef(null);
   const scannerContainerId = 'qr-reader-container';
 
-  // Fetch available cameras on mount
-  useEffect(() => {
-    Html5Qrcode.getCameras()
-      .then((devices) => {
-        if (devices && devices.length > 0) {
-          setCameras(devices);
-          setSelectedCameraId(devices[0].id);
-        } else {
-          setScanError('No camera devices found.');
-        }
-      })
-      .catch((err) => {
-        console.error('Error getting cameras:', err);
-        setScanError('Failed to access camera list. Please verify permissions.');
-      });
-
-    return () => {
-      stopScanner();
-    };
-  }, []);
-
-  const startScanner = async () => {
-    if (!selectedCameraId) return;
-    setScanError(null);
-    setScanResult(null);
-
-    try {
-      const html5QrCode = new Html5Qrcode(scannerContainerId);
-      qrCodeInstance.current = html5QrCode;
-
-      await html5QrCode.start(
-        selectedCameraId,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-        },
-        (decodedText) => {
-          // Success callback
-          setScanResult(decodedText);
-          onScanSuccess(decodedText);
-          stopScanner();
-        },
-        (errorMessage) => {
-          // Verbose error logging is suppressed, but can log if debugging
-        }
-      );
-      setScanning(true);
-    } catch (err) {
-      console.error('Error starting scanner:', err);
-      setScanError('Could not start scanner. Verify permissions or camera status.');
-    }
-  };
-
   const stopScanner = async () => {
     if (qrCodeInstance.current && qrCodeInstance.current.isScanning) {
       try {
@@ -76,6 +23,59 @@ export default function Scanner({ onScanSuccess, activeEventTitle }) {
       }
     }
     setScanning(false);
+  };
+
+  // Clean up scanner on unmount
+  useEffect(() => {
+    return () => {
+      stopScanner();
+    };
+  }, []);
+
+  const startScanner = async () => {
+    setScanError(null);
+    setScanResult(null);
+
+    try {
+      // 1. Fetch available cameras dynamically on demand
+      let camId = selectedCameraId;
+      if (!camId) {
+        const devices = await Html5Qrcode.getCameras();
+        if (devices && devices.length > 0) {
+          setCameras(devices);
+          camId = devices[0].id;
+          setSelectedCameraId(camId);
+        } else {
+          setScanError('No camera devices found.');
+          return;
+        }
+      }
+
+      // 2. Start scanner instance
+      const html5QrCode = new Html5Qrcode(scannerContainerId);
+      qrCodeInstance.current = html5QrCode;
+
+      await html5QrCode.start(
+        camId,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+        },
+        (decodedText) => {
+          // Success callback
+          setScanResult(decodedText);
+          onScanSuccess(decodedText);
+          stopScanner();
+        },
+        () => {
+          // Verbose error logging suppressed
+        }
+      );
+      setScanning(true);
+    } catch (err) {
+      console.error('Error starting scanner:', err);
+      setScanError('Could not start scanner. Verify permissions or camera status.');
+    }
   };
 
   const toggleScan = () => {
