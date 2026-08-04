@@ -2,6 +2,9 @@
 
 EventPulse is a full-stack, mobile-responsive web application designed for organizing campus events, managing student registrations, and validating secure attendance check-ins using cryptographically signed QR codes.
 
+- 🌐 **Live Deployed App**: [https://eventpulse-campus.web.app](https://eventpulse-campus.web.app)
+- 🐙 **GitHub Repository**: [https://github.com/misahl/EventPulse.git](https://github.com/misahl/EventPulse.git)
+
 ---
 
 ## 🚀 Tech Stack
